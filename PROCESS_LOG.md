@@ -2374,3 +2374,590 @@ The requested local core is ready to begin a separate deployment task; deploymen
 Time: 2026-10-08T13:37:11+05:30.
 
 A diagnostic Python reader timed out while waiting for a 65,536-byte socket read from the long-lived MJPEG response; this was a diagnostic-client buffering issue, not evidence that the MJPEG endpoint lacked a frame. A bounded `curl` probe then received a complete JPEG frame, and Chrome's same-origin production page displayed the emulator. The attempted cleanup included `/tmp/healthtick-stream.jpg`, which had not been created by that timed-out reader; `rm` reported that one path missing. The remaining explicitly named temporary screenshots/dumps and the matching emulator UI dump were removed. No project files other than this append-only log were changed by cleanup. The Vite dev server exited with status 143 after the requested targeted `kill`; the backend handled termination and its scrcpy/FFmpeg children were confirmed absent. The Android Emulator itself was left running for the user. No commit was created.
+
+## Entry 014 — Cloud Deployment Preflight Blocked: Google Cloud CLI Missing
+
+### Time
+
+2026-10-08T15:39:08+05:30 (user-provided task timestamp; local check completed shortly after).
+
+### User Prompt (verbatim)
+
+```text
+We are now moving to the FINAL DEPLOYMENT PHASE.
+
+Read AGENTS.md, PROCESS_LOG.md, README.md, and docs/latency-and-validation.md
+before doing anything.
+
+The local core is COMPLETE and VALIDATED.
+
+DO NOT redesign the application.
+
+DO NOT return to Google Emulator WebRTC.
+
+DO NOT run another local architecture experiment.
+
+DO NOT add authentication.
+
+DO NOT add database.
+
+DO NOT add bonus features.
+
+DO NOT add multi-user support.
+
+DO NOT add Kubernetes.
+
+DO NOT add autoscaling.
+
+Our priority is:
+
+GET THE EXISTING WORKING APPLICATION PUBLICLY ACCESSIBLE.
+
+==================================================
+CURRENT VERIFIED ARCHITECTURE
+==================================================
+
+Video:
+
+Android Emulator
+    ↓
+scrcpy device-side H.264
+    ↓
+FFmpeg
+    ↓
+MJPEG
+    ↓
+Python backend
+    ↓
+React browser
+
+Input:
+
+React browser
+    ↓
+Python backend
+    ↓
+ADB
+    ↓
+Android Emulator
+
+The local implementation has already verified:
+
+- real Android video
+- live browser updates
+- tap
+- swipe
+- scroll
+- keyboard input
+- coordinate mapping
+- browser resize
+- latency measurement
+
+Do not replace this architecture unless deployment makes it
+technically impossible.
+
+==================================================
+DEPLOYMENT TARGET
+==================================================
+
+Use a Linux cloud VM capable of running Android Emulator with KVM.
+
+Preferred provider:
+
+Google Cloud Compute Engine.
+
+Reason:
+
+Google officially supports nested virtualization for Linux KVM on
+appropriate Compute Engine VM types.
+
+Before provisioning anything, inspect the current environment and determine:
+
+1. Is gcloud installed?
+2. Is the user authenticated?
+3. Is a Google Cloud project already configured?
+4. Is billing enabled?
+5. Is there an existing suitable VM?
+6. Which suitable Intel machine type/zone is available?
+
+Do NOT create a cloud resource if authentication/project/billing information
+is missing.
+
+If user action is required, STOP and tell me exactly what I need to do.
+
+Do NOT guess credentials.
+
+Do NOT print or expose credentials.
+
+==================================================
+COST CONTROL
+==================================================
+
+This is an internship assignment, not a production service.
+
+Prefer the smallest practical VM that can reliably run:
+
+- Linux
+- KVM
+- Android Emulator
+- scrcpy
+- FFmpeg
+- Python backend
+
+Do not choose a huge instance.
+
+Before creating the VM, report:
+
+- machine type
+- region/zone
+- approximate hourly cost if available
+- why the machine is sufficient
+
+Do not provision an expensive resource without explicit confirmation.
+
+If an existing suitable VM is available, inspect and reuse it.
+
+==================================================
+PHASE 1 — CLOUD VM VALIDATION
+==================================================
+
+Provision or use the selected Linux VM.
+
+Verify:
+
+uname -a
+
+CPU architecture
+
+KVM availability:
+
+ls -l /dev/kvm
+
+and appropriate KVM checks.
+
+Verify hardware virtualization is exposed.
+
+If KVM is unavailable:
+
+STOP.
+
+Do not attempt software-emulated Android as a workaround.
+
+Report the exact problem.
+
+==================================================
+PHASE 2 — ANDROID EMULATOR
+==================================================
+
+Install/configure the Android Emulator on the Linux VM.
+
+Use an x86_64 Android system image compatible with KVM.
+
+Do not assume the local macOS Pixel_7 AVD can simply be copied.
+
+Create a suitable server-side AVD if necessary.
+
+Boot the emulator headlessly.
+
+Verify:
+
+- emulator starts
+- ADB sees it
+- Android fully boots
+- screen can be captured
+
+Use a reasonable resolution to reduce bandwidth and CPU usage.
+
+Do not use an unnecessarily large phone resolution.
+
+==================================================
+PHASE 3 — STREAMING STACK
+==================================================
+
+Install and configure:
+
+- scrcpy
+- FFmpeg
+- Python 3
+- required Python dependencies
+
+Reproduce the SAME architecture already validated locally:
+
+scrcpy
+→ FFmpeg
+→ MJPEG
+→ Python
+→ browser
+
+Do not introduce WebRTC again.
+
+Do not introduce another media server unless absolutely required by the
+cloud environment.
+
+==================================================
+PHASE 4 — APPLICATION DEPLOYMENT
+==================================================
+
+Move/use the current project implementation on the VM.
+
+Backend:
+
+backend/server.py
+
+Frontend:
+
+build the React application using the existing tested production build.
+
+Do NOT use the unreliable Vite development server for production.
+
+Serve the tested frontend build through the Python backend or the same
+tested build-and-serve mechanism documented in README.md.
+
+Verify the application works locally ON THE CLOUD VM before exposing it
+publicly.
+
+==================================================
+PHASE 5 — NETWORKING
+==================================================
+
+Expose only the required application port.
+
+Do not expose ADB publicly.
+
+Do not expose unnecessary emulator/gRPC/debug ports publicly.
+
+The browser should communicate with the backend through the public
+application endpoint.
+
+If possible, bind ADB/emulator control interfaces to localhost/private
+interfaces only.
+
+==================================================
+PHASE 6 — HTTPS
+==================================================
+
+The final demo should use HTTPS if practical.
+
+Determine the simplest reliable way to provide HTTPS for the assignment.
+
+Possible approach:
+
+- reverse proxy such as Caddy or Nginx
+- Let's Encrypt certificate
+- public DNS if required
+
+Do not buy a domain just for this assignment unless necessary.
+
+If HTTPS setup requires a domain and no domain exists, first determine
+whether the application can be demonstrated safely over the cloud VM's
+public endpoint or whether a temporary domain is required.
+
+Do not spend hours on domain configuration.
+
+==================================================
+PHASE 7 — PUBLIC END-TO-END TEST
+==================================================
+
+From a browser that is NOT the server's local environment:
+
+Open the public application.
+
+Verify:
+
+1. Real Android screen appears.
+2. Initial frame appears automatically.
+3. Tap works.
+4. Swipe works.
+5. Scroll works.
+6. Keyboard input works.
+7. Coordinate mapping works after browser resize.
+8. Android changes are visible in the browser.
+
+This is the most important deployment test.
+
+The Android environment must actually be running on the cloud server.
+
+Do not use my Mac as the Android device.
+
+==================================================
+PHASE 8 — BASIC RELIABILITY
+==================================================
+
+Perform only a short reliability test.
+
+Verify:
+
+- backend process remains alive
+- scrcpy remains alive
+- FFmpeg remains alive
+- emulator remains alive
+- browser can reconnect after a temporary refresh
+
+Do not implement sophisticated orchestration.
+
+If a process dies, document the failure and fix only what is necessary
+for a reliable demo.
+
+==================================================
+PHASE 9 — SECURITY MINIMUM
+==================================================
+
+Because the assignment requires a public deployment, apply basic security:
+
+- never expose ADB publicly
+- never expose SSH credentials
+- never commit secrets
+- restrict unnecessary ports
+- validate browser input coordinates server-side
+- reject invalid/out-of-range coordinates
+- avoid arbitrary shell command construction from browser input
+- use safe subprocess argument handling
+- do not allow arbitrary ADB commands from the browser
+
+Do NOT build authentication unless it is necessary for safe deployment.
+
+==================================================
+PHASE 10 — README
+==================================================
+
+After deployment is actually verified, update README.md.
+
+Document the ACTUAL deployment.
+
+Include:
+
+- architecture diagram
+- local setup
+- cloud architecture
+- cloud VM requirements
+- emulator setup
+- scrcpy/FFmpeg setup
+- backend startup
+- frontend build/serve
+- public URL
+- how to test tap
+- how to test swipe
+- how to test scroll
+- how to test keyboard
+- coordinate mapping
+- latency methodology
+- known limitations
+- shutdown/cost-control instructions
+
+Do not document commands that were not actually tested.
+
+==================================================
+DEPLOYMENT WRITE-UP
+==================================================
+
+Create/update the architecture documentation needed for the assignment.
+
+Explain:
+
+1. Android screen → browser
+
+2. Browser input → Android
+
+3. Coordinate transformation
+
+4. Why Google Emulator native RTC was rejected
+
+5. Why scrcpy + FFmpeg + MJPEG was selected
+
+6. Deployment architecture
+
+7. Isolation/security considerations
+
+8. What remains limited
+
+Keep it concise and suitable for the assignment's 1–2 page architecture
+write-up.
+
+==================================================
+"WHAT WENT WRONG"
+==================================================
+
+Preserve the existing Google RTC failure in PROCESS_LOG.md and the
+write-up.
+
+Explain that:
+
+Emulator 35.6.11
+and
+Emulator 37.2.12
+
+both returned:
+
+Rtc.RequestRtcStream
+StatusCode.UNIMPLEMENTED
+
+Therefore that implementation path was abandoned after controlled testing.
+
+Do not hide this failure.
+
+It is part of the engineering/problem-solving story.
+
+==================================================
+DEMO PREPARATION
+==================================================
+
+After deployment succeeds, prepare a simple demo flow:
+
+1. Open public URL.
+2. Show real Android screen.
+3. Tap.
+4. Swipe.
+5. Scroll.
+6. Focus a text field.
+7. Type text from keyboard.
+8. Resize browser.
+9. Perform another tap.
+10. Show the Android response.
+
+The demo must use the DEPLOYED version, not localhost.
+
+Do not create a fake demo.
+
+==================================================
+PROCESS_LOG
+==================================================
+
+Append to PROCESS_LOG.md throughout this deployment.
+
+Never rewrite/delete previous entries.
+
+Record:
+
+- exact user prompt
+- cloud provider
+- VM type
+- region
+- provisioning
+- commands
+- failures
+- fixes
+- emulator setup
+- streaming setup
+- public networking
+- HTTPS
+- testing results
+- latency
+- security decisions
+- final deployment URL
+- remaining limitations
+
+Do not put secrets in PROCESS_LOG.md.
+
+==================================================
+GIT
+==================================================
+
+Do not commit automatically.
+
+Before finishing:
+
+git status
+git diff --check
+
+Review all changed files.
+
+==================================================
+STOP CONDITIONS
+==================================================
+
+STOP and report if:
+
+- cloud credentials are missing
+- billing/project setup requires my action
+- suitable KVM VM cannot be obtained
+- Android Emulator cannot run with KVM
+- public networking cannot be configured safely
+- deployment becomes blocked by a provider limitation
+
+Do not silently switch to a completely different architecture.
+
+==================================================
+FINAL REPORT
+==================================================
+
+At the end report exactly:
+
+RESULT: SUCCESS / PARTIAL / BLOCKED
+
+Cloud provider:
+
+VM type:
+
+Region/zone:
+
+KVM:
+WORKING / FAILED
+
+Android Emulator on server:
+WORKING / FAILED
+
+Real Android video publicly:
+YES / NO
+
+Tap:
+WORKING / FAILED
+
+Swipe:
+WORKING / FAILED
+
+Scroll:
+WORKING / FAILED
+
+Keyboard:
+WORKING / FAILED
+
+Coordinate mapping:
+WORKING / FAILED
+
+Browser resize:
+PASSED / FAILED
+
+HTTPS:
+WORKING / NOT USED / BLOCKED
+
+Public URL:
+
+Approximate end-to-end latency:
+
+Main limitation:
+
+Deployment:
+READY FOR DEMO / NOT READY
+
+Remaining blocker:
+
+Required action from me:
+
+Then STOP.
+
+Do not implement optional bonuses.
+Do not add authentication.
+Do not add multi-user support.
+Do not add autoscaling.
+Do not continue experimenting after the deployment is working.
+```
+
+### Actions and Commands
+
+- Read `AGENTS.md`, `PROCESS_LOG.md`, `README.md`, and `docs/latency-and-validation.md` before the deployment preflight.
+- Ran `command -v gcloud`; observed `gcloud: not installed`.
+- Ran a guarded Cloud SDK active-account check that would emit only whether an active account exists, never its identity; it was not run because the `gcloud` executable was absent.
+- Ran a guarded `gcloud config get-value project` / active-configuration check; observed `Cloud project cannot be inspected: gcloud not installed`.
+- Checked environment variable names prefixed `GOOGLE_`, `GCLOUD_`, `CLOUDSDK_`, or `GCP_` without printing values; none were present.
+- Ran `git status --short --branch`; the branch was `main` and clean at preflight start.
+- No Google Cloud API call, billing lookup, VM inventory query, zone/machine-type query, resource creation, tool installation, or credential output occurred.
+
+### Result / Blocker
+
+**BLOCKED before provisioning.** With no installed `gcloud` and no Cloud SDK configuration, the account, selected project, billing enablement, existing VM inventory, suitable Intel machine types/zones, and pricing cannot be verified. No cloud resource was created, and no credentials were requested or exposed. Deployment, KVM, emulator, networking, HTTPS, and public browser tests were not performed.
+
+### Required User Action / Next Step
+
+Install the official Google Cloud CLI on this Mac, authenticate it with the Google account that owns the assignment project, set the intended existing Cloud project as the active project, and ensure billing is enabled for that project. Do not send or paste credential material into this chat. Once configured, ask to resume the deployment preflight; the next run must re-check authentication, project, billing, existing VMs, and suitable zone/machine pricing before any provisioning. VM creation will still wait for explicit approval of the reported instance and estimated cost.
+
+No project files other than this append-only process log were changed in this deployment preflight. No commit was created.

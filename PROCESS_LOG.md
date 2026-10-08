@@ -2961,3 +2961,123 @@ Do not continue experimenting after the deployment is working.
 Install the official Google Cloud CLI on this Mac, authenticate it with the Google account that owns the assignment project, set the intended existing Cloud project as the active project, and ensure billing is enabled for that project. Do not send or paste credential material into this chat. Once configured, ask to resume the deployment preflight; the next run must re-check authentication, project, billing, existing VMs, and suitable zone/machine pricing before any provisioning. VM creation will still wait for explicit approval of the reported instance and estimated cost.
 
 No project files other than this append-only process log were changed in this deployment preflight. No commit was created.
+
+## Entry 015 — Investigating Unintended Android Movement
+
+### Time
+
+2026-10-08 19:39 IST (session timestamp)
+
+### User Prompt (verbatim)
+
+```text
+Read AGENTS.md and PROCESS_LOG.md first.
+
+We have a working local implementation of the HealthTick "Real-Time Android Device in the Browser" assignment.
+
+Current behavior:
+- Real Android Emulator screen is displayed in Chrome.
+- Browser tap/swipe/scroll/keyboard input works.
+- However, after connecting the device, the Android screen sometimes appears to automatically scroll/move even when the user has not performed any action.
+
+Fix ONLY this unintended automatic movement/input behavior.
+
+Important:
+1. Do NOT redesign the architecture.
+2. Do NOT switch transports.
+3. Do NOT optimize latency.
+4. Do NOT modify deployment.
+5. Do NOT add features.
+6. Do NOT change working tap/swipe/scroll/keyboard behavior unless required to eliminate unintended input.
+7. Inspect the existing frontend input/event handlers and backend ADB input handling carefully.
+8. Look specifically for:
+   - mouse/touch events firing during initialization
+   - pointer/touch coordinates being sent without an actual user gesture
+   - wheel events
+   - pointermove/pointerdown/pointerup handling
+   - synthetic events
+   - initialization/default coordinates accidentally being interpreted as input
+   - browser focus/gesture behavior
+   - duplicate or stale input requests
+   - timers/intervals that could repeatedly send input
+9. The video stream itself must continue working normally. Do NOT stop or artificially freeze the Android video stream.
+10. After making the smallest necessary fix, test:
+    - Connect/open page → Android screen remains stable without user interaction.
+    - Tap still works.
+    - Swipe still works.
+    - Scroll still works.
+    - Keyboard still works.
+    - Browser resize still works.
+11. If the cause cannot be established confidently, do not make speculative changes. Report what you found instead.
+12. Append the work to PROCESS_LOG.md according to the existing mandatory logging instructions.
+13. Do not commit or push anything automatically.
+
+At the end, report:
+- exact root cause
+- files changed
+- exact fix
+- tests performed
+- whether automatic movement stopped
+- whether tap/swipe/scroll/keyboard still work.
+```
+
+### What AI Did
+
+- Read `AGENTS.md` and the existing `PROCESS_LOG.md` before making changes. Reviewed `frontend/src/App.jsx` pointer, click, wheel, and keyboard handlers; the health polling timer; and `backend/server.py` input routes, which execute ADB only for explicit `/api/input/*` POST requests. The stream startup/capture code does not issue ADB input.
+- Reset the real `emulator-5554` Pixel_7 to the Android Settings homepage with `adb -e shell am force-stop com.android.settings` and `adb -e shell am start -W -a android.settings.SETTINGS`. The launch returned `Status: ok` and `com.android.settings/.homepage.SettingsHomepageActivity`.
+- Opened `http://127.0.0.1:8000/` in Chrome. The backend reported `emulator-5554`, 1080 × 2400, `video_ready: true`; the displayed stream image was 486 × 1080.
+- Installed temporary in-page event/fetch observation (no project file changes). During the first 20-second no-action interval, no pointer, click, wheel, touch, or keyboard events and no `/api/input/*` requests were observed. Two Settings UI hierarchy dumps 10 seconds apart were identical.
+- Exercised real browser controls through the existing page: tap opened Android Settings search; browser keyboard typed `wifi`, visible in the actual Android screen; `/api/input/key` Back, `/api/input/scroll`, and `/api/input/swipe` were observed; the swipe was dispatched after a 500 ms gesture, satisfying the frontend's existing >100 ms swipe threshold. A shorter attempted drag did not produce a swipe request because it completed in under that threshold. Resized the browser to 900 × 700 and performed another tap; the app reported `Tap sent · changed frame received`.
+- During the extended interaction/browser observation, 14 `/api/input/scroll` POSTs appeared about one second apart while the then-current page's captured DOM event array was empty. The stream image temporarily reported 0 × 0 and the browser reported `ERR_NETWORK_IO_SUSPENDED`. Android was subsequently observed on the bottom portion of Settings rather than at its prior top position. Reloading the page restored the stream. The origin of those scroll POSTs was not traced: the evidence does not distinguish another/stale client, delayed requests, or another browser/tool event source. This is an unresolved anomaly, not proof of a frontend or backend defect.
+- For a clean final idle trial, reset Settings to its top and captured its UI hierarchy, reloaded the browser page, and observed for 10 seconds. No browser input events or `/api/input/*` POSTs occurred; the stream remained connected at 486 × 1080; the extracted visible text, bounds, scrollable nodes, and focus state in the Android UI hierarchy were identical before and after the interval.
+- Tap, keyboard text, Back key, scroll, and swipe endpoints all produced observed requests during the deliberate control tests. No source-code change was made because the intermittent movement's cause was not established confidently; no synthetic-event guard or other speculative behavior change was introduced.
+- Ran `git status --short` and `git diff --check` before appending this entry. No source changes were present at that point. No commit or push was made.
+
+### Errors / Failures / Unresolved Findings
+
+- The automatic movement was not reproduced in the clean final 10-second idle test, but an earlier idle period after deliberate interaction included unexplained repeated scroll POSTs and a changed Android Settings position. The cause remains unconfirmed, so the issue cannot be reported as fixed.
+- A brief `ERR_NETWORK_IO_SUSPENDED` / missing MJPEG image occurred during the longer browser interaction test; reloading re-established the real stream. No transport or application changes were made.
+- The first drag test was under the frontend's 100 ms swipe dispatch threshold and did not test the swipe route; a subsequent longer drag did dispatch it.
+- No Android video/capture code was disabled or changed.
+
+### Files Changed
+
+- `PROCESS_LOG.md` only (this append-only entry). No frontend or backend source was changed.
+
+### User Decision / Next Step
+
+The next decision is whether to authorize a focused follow-up that attributes the intermittent scroll POSTs to their originating browser/client and correlates each POST with a captured trusted DOM event before any code fix is attempted. Until that source is established, no speculative fix is recommended.
+
+## Entry 016 — Focused Scroll-Request Source Trace
+
+### Time
+
+2026-10-08 19:44 IST (session timestamp)
+
+### User Prompt (verbatim)
+
+```text
+Yes—trace the request source (Recommended)
+```
+
+### What AI Did
+
+- Enumerated the active Playwright browser context; it contained one page at `http://127.0.0.1:8000/`.
+- Inspected local processes and port 8000 sockets. The existing Python backend (PID 3540), FFmpeg (PID 3552), and scrcpy (PID 3553) were running. At inspection time, the backend had one established local socket in addition to its listening socket; no second browser page was present in this context.
+- Added temporary in-page event and fetch observation, then performed exactly one deliberate browser wheel input over the real Android screen and observed for eight seconds.
+- Observed one trusted DOM `wheel` event (`deltaY: 240`) and exactly one `/api/input/scroll` POST. Its JavaScript stack reached the built frontend bundle (`/assets/index-CjHTTkVK.js`); no further input POSTs appeared during the observation. The stream remained connected at 486 × 1080.
+- Confirmed in source that the wheel handler is the only frontend call path for `/api/input/scroll`, and it calls `sendInput` for the observed wheel event. No periodic scroll/input timer exists in the reviewed frontend/backend input paths.
+- Did not change source code. The prior anomaly (14 scroll POSTs with no corresponding events in the then-current page's temporary capture, followed by a changed Settings position) did not recur and still cannot be attributed to a particular page, delayed request, or browser/tool event. This trace therefore does not establish an exact root cause or justify an input-handler change.
+
+### Errors / Failures / Unresolved Findings
+
+- A single deliberate wheel produced one expected scroll POST; the intermittent repeated POST anomaly was not reproducible. Its original source remains unknown.
+- No code fix was made because the user explicitly directed that speculative changes must not be made without a confident cause.
+
+### Files Changed
+
+- `PROCESS_LOG.md` only (this append-only entry).
+
+### User Decision / Next Step
+
+Source attribution remains unresolved. No source change is recommended from the available evidence. The current implementation should remain unchanged unless a further occurrence can be captured with the originating browser event/request and corresponding Android input correlated in real time.

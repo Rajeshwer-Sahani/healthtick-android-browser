@@ -1,0 +1,112 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e8eef5;
+  background: #10151d;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button { font: inherit; }
+
+.app { min-height: 100vh; }
+.topbar {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #27313d;
+  background: #171e28;
+}
+.topbar h1 { margin: 0; font-size: 19px; font-weight: 650; }
+.topbar p { margin: 5px 0 0; color: #9eacbb; font-size: 12px; }
+.connection { display: flex; align-items: center; gap: 9px; color: #afbbc8; font-size: 12px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #ef786e; }
+.online .dot { background: #6dc69b; }
+
+.workspace {
+  min-height: calc(100vh - 82px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 18px;
+  padding: 18px;
+}
+.device-panel {
+  min-width: 0;
+  min-height: 400px;
+  height: calc(100vh - 118px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #293442;
+  border-radius: 8px;
+  background: #07090d;
+}
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+.screen img {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+.placeholder {
+  max-width: 440px;
+  padding: 30px;
+  color: #aeb9c6;
+  text-align: center;
+  line-height: 1.6;
+}
+.controls { padding: 6px 3px; color: #c2ccd7; }
+.controls h2 { margin: 3px 0 12px; color: #edf2f7; font-size: 15px; }
+.controls p { font-size: 13px; line-height: 1.55; }
+.controls .hint { color: #8f9cab; font-size: 12px; }
+.actions { display: flex; gap: 8px; margin: 16px 0; }
+.actions button {
+  padding: 9px 11px;
+  border: 1px solid #3a4858;
+  border-radius: 6px;
+  color: #e8eef5;
+  background: #202a36;
+  cursor: pointer;
+}
+.actions button:disabled { opacity: 0.5; cursor: wait; }
+.status-box {
+  min-height: 80px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid #2b3745;
+  border-radius: 6px;
+  background: #171e28;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.status-box strong { font-weight: 550; }
+.status-box dl { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; }
+.status-box dt { color: #9eacbb; }
+.status-box dd { margin: 0; font-variant-numeric: tabular-nums; }
+.error { color: #ff9b91; }
+.controls small { display: block; color: #8e9baa; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .topbar { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); padding: 10px; }
+  .device-panel { height: 68vh; min-height: 320px; }
+  .controls { padding: 0 4px 12px; }
+}

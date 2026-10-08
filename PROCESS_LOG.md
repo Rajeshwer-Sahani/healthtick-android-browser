@@ -40,3 +40,2337 @@ No AI coding-agent implementation has been started yet.
 The user decided to establish the AI-agent instructions and process log before beginning AI-assisted implementation.
 
 Next step: complete the remaining repository foundation files, create the initial Git commit, and push the project foundation to GitHub before starting the technical Android Emulator/WebRTC validation.
+
+---
+
+## Entry 002 — Local Android Emulator/WebRTC Feasibility Investigation
+
+### Time
+
+2026-10-08 11:14 IST (session timestamp)
+
+### User Prompt (verbatim)
+
+```text
+We are starting the HealthTick Software Developer Intern take-home assignment
+from a completely clean repository.
+
+Read AGENTS.md first and follow it exactly.
+
+Read PROCESS_LOG.md before doing anything.
+
+IMPORTANT:
+This is an investigation and validation step only.
+Do NOT build the application yet.
+Do NOT create mock/fake Android functionality.
+Do NOT create a fake device UI.
+Do NOT create the React application yet.
+Do NOT implement the Python gateway yet.
+Do NOT deploy anything.
+
+Assignment goal:
+
+Build a real-time interactive Android device inside a web browser.
+
+The currently planned architecture is:
+
+Browser
+→ React frontend
+→ WebRTC / WebSocket
+→ Python Gateway
+→ gRPC
+→ Android Emulator
+
+The architecture is not considered validated yet.
+
+Your task is ONLY to investigate and prepare the first local technical experiment.
+
+1. Inspect the current repository structure and existing files.
+
+2. Inspect the local development environment and report what is already installed and usable:
+   - macOS version
+   - Android SDK
+   - Android Emulator
+   - adb
+   - Python
+   - Docker
+   - Node.js
+   - npm
+   - Git
+
+3. Research the official Google Android Emulator WebRTC/container projects relevant
+   to this architecture.
+
+   Prefer official Google repositories/documentation.
+
+4. Determine the smallest realistic local experiment that can prove:
+
+   Android Emulator
+   → Google Emulator WebRTC stack
+   → Gateway
+   → Browser
+
+5. Identify all required prerequisites for that experiment.
+
+6. Identify whether the Google Emulator WebRTC/container approach is compatible
+   with the current Mac development environment.
+
+7. If there is an important limitation on macOS, explain it clearly and determine
+   the correct alternative development setup without changing the final architecture
+   unnecessarily.
+
+8. Do not install or modify anything unless explicitly necessary and safe.
+   First report what you recommend installing or changing.
+
+9. Do not guess commands or dependencies.
+   Verify them from authoritative documentation where possible.
+
+10. Clearly separate:
+    - verified facts
+    - recommendations
+    - assumptions
+    - unresolved questions
+
+11. Identify the first concrete experiment we should run.
+
+12. Stop after the investigation and report your findings.
+    Do not proceed to implementation.
+
+After completing the investigation, update PROCESS_LOG.md according to the
+mandatory logging instructions in AGENTS.md.
+
+For the PROCESS_LOG entry:
+- preserve my exact prompt verbatim;
+- describe what you actually investigated;
+- record commands/checks performed;
+- record errors/failures;
+- record any dead ends;
+- record the resulting recommendation;
+- record what decision is now required from me.
+
+Do not fabricate successful results.
+```
+
+### What AI Did
+
+- Read `AGENTS.md` and the pre-existing `PROCESS_LOG.md` before inspecting other project files.
+- Inspected the project tree, `README.md`, `THIRD_PARTY_NOTICES.md`, and Git status. The repository contains foundation documentation and empty placeholder files/directories; no application or gateway implementation is present, and the worktree was clean on `main`.
+- Checked the host with `sw_vers`, `uname -a`, `command -v`, tool version commands, Android SDK paths, `emulator -list-avds`, `emulator -accel-check`, `adb devices -l`, SDK image directories, and AVD configuration.
+- Observed macOS 27.0 on Apple silicon (arm64/T8103); Android SDK tools are installed under `~/Library/Android/sdk`, but `ANDROID_HOME` and `ANDROID_SDK_ROOT` are unset and `adb`/`emulator` are not on PATH.
+- Verified installed Android Emulator 35.6.11, Platform-Tools/ADB 36.0.0, SDK command-line tools 19.0, an existing `Pixel_7` AVD with an Android 34 arm64 image, and a successful `emulator -accel-check` reporting Hypervisor.Framework. No emulator was running and `adb devices -l` listed no devices.
+- Observed system `python3` is 3.9.6; a separate executable `~/.local/bin/python3.11` is installed at version 3.11.16. No `python3` alias is present in `~/.local/bin`, so the upstream setup script's `python3` invocation would still select 3.9.6 unless the virtual environment is created explicitly with Python 3.11.
+- Verified Node.js 24.13.1, npm 11.8.0, and Git 2.50.1. Docker, Docker Desktop, Podman, Colima, and Rancher executables were not found; `/Applications/Docker.app` is absent.
+- Read the official `google/android-emulator-container-scripts` README, its `gateway/DEMO.md`, `gateway/launch_video_demo.sh`, `gateway/setup_env.sh`, and `gateway/pyproject.toml`; read the Android Emulator acceleration/command-line documentation and the official `google/android-emulator-webrtc` README/protocol/package metadata.
+- Confirmed the Google demo documents a macOS native-emulator discovery-file location and a local gateway plus React/Vite sample flow. The gateway package declares Python >=3.10 and dependencies `aiohttp`, `grpcio`, `protobuf`, and `websockets`. The emulator CLI help on this host documents `-grpc <port>` as the switch to enable its gRPC control service.
+- Noted a documentation discrepancy to resolve at experiment time: upstream demo docs name `~/Library/Android/avd/running/pid_<PID>.ini`, while this installed emulator's CLI help reports `$HOME/Library/Caches/TemporaryItems/avd/running/pid_<PID>_info.ini`. The actual discovery file must be located after launching the emulator; do not assume either path or record its token in the log.
+- Confirmed upstream container requirements explicitly require Linux, Docker Engine/Compose, and KVM, and explicitly state Docker Desktop on macOS is unsupported for KVM acceleration. Google's registry documentation repeats that macOS/Windows Docker Desktop is unsupported.
+
+### Commands / Checks Performed
+
+- `sw_vers`
+- `uname -a`
+- `command -v` checks for `emulator`, `adb`, Python, Docker, Node.js, npm, Git, Podman, Colima, and Rancher
+- Version checks for system Python, Python 3.11, Node.js, npm, Git, Android Emulator, ADB, and SDK command-line tools
+- `git status --short --branch`
+- Shallow listing of `~/Library/Android/sdk`
+- `emulator -list-avds`
+- `emulator -accel-check`
+- `adb devices -l`
+- SDK system-image/platform directory listing and AVD `config.ini` inspection
+- `emulator -help-all` filtered for gRPC/WebRTC/discovery options
+- Checked for `/Applications/Docker.app` and `/Applications/Android Studio.app`
+- Fetched primary-source documentation and upstream project files listed above; no local emulator, gateway, browser, or WebRTC streaming session was started.
+
+### Errors / Failures / Dead Ends
+
+- `command -v adb` and `command -v emulator` initially found nothing because the SDK's `platform-tools` and `emulator` executables are not on PATH; direct checks at their installed SDK paths succeeded.
+- The first check of `emulator -version` emitted the version and an expected “No AVD specified” message; subsequent checks used supported listing/help/acceleration commands instead.
+- An attempted fetch of `gateway/requirements.txt` returned HTTP 404. The dependency source was verified from the existing upstream `gateway/pyproject.toml` instead; no dependency was inferred from the failed URL.
+- No install, file change outside this appended log entry, emulator boot, or deployment was attempted.
+
+### Recommendation
+
+Keep the agreed architecture. For the first local proof, prefer the native Android Emulator already installed on this Apple-silicon Mac and Google's documented Python Gateway/WebRTC browser demo; do not try to run the emulator in Docker Desktop on this Mac. Use Python 3.11 explicitly in an isolated virtual environment, and obtain the active emulator discovery file from the running process rather than assuming a documented path. If container-based emulator testing is later required, use a Linux host with Docker Engine/Compose and working KVM (bare metal, or a cloud VM with nested virtualization); that is an environment-specific test setup, not a reason to change the target architecture.
+
+The proposed, not-yet-run experiment is: boot the existing `Pixel_7` AVD with gRPC explicitly enabled using the locally documented emulator option; inspect its generated discovery file; start the upstream Python Gateway using its documented `--discovery_file`; run the upstream `js/example` React/Vite app; connect a browser to the local gateway; verify a live emulator frame and one real touch/input round-trip. Keep all downloaded Python/npm dependencies in a temporary upstream checkout and isolated environment if the experiment is approved.
+
+### User Decision / Next Step
+
+The investigation is complete; no experiment has yet been run. The user must decide whether to authorize this native-Mac experiment, which will boot the existing AVD and install upstream Python/npm dependencies in isolated temporary locations. If it fails due to the native emulator's gRPC/WebRTC capability, reassess with evidence before recommending any Linux/KVM host or other setup change.
+
+---
+
+## Entry 003 — Native Mac Emulator/WebRTC Experiment (Blocked at Gateway Install)
+
+### Time
+
+2026-10-08 11:24 IST
+
+### User Prompt (verbatim)
+
+```text
+We authorize the native-Mac technical experiment described in your previous
+investigation.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+This is still a validation experiment, NOT full application implementation.
+
+Goal:
+
+Prove whether this exact local chain can work:
+
+Pixel_7 Android Emulator
+→ Google Android Emulator WebRTC/gRPC path
+→ Python Gateway
+→ React/Vite browser client
+→ Chrome
+
+Proceed incrementally and stop at the first blocking issue.
+
+IMPORTANT RULES:
+
+1. Do NOT build the HealthTick application yet.
+2. Do NOT create a fake/mock Android UI.
+3. Do NOT create our production frontend.
+4. Do NOT create our production backend.
+5. Do NOT modify the agreed architecture without explaining why.
+6. Do NOT install Docker Desktop on macOS for this experiment.
+7. Do NOT replace the native Mac emulator with a different emulator unless
+   the current experiment proves impossible.
+8. Use Python 3.11 explicitly for the gateway environment.
+9. Prefer official Google repositories/documentation.
+10. Keep upstream source/dependencies isolated from our production source tree
+    where practical.
+11. Do not commit generated files, virtual environments, node_modules,
+    emulator runtime data, or secrets.
+12. Do not claim success unless the behavior is actually observed.
+
+Perform these steps one at a time:
+
+A. Verify the existing Pixel_7 AVD configuration.
+B. Start the Pixel_7 emulator with the required gRPC configuration.
+C. Verify the emulator is actually running and accessible.
+D. Identify the actual discovery file generated by this running emulator.
+E. Verify whether the running emulator exposes the RTC/gRPC service expected
+   by Google's gateway.
+F. Create an isolated Python 3.11 environment for the upstream gateway.
+G. Obtain the minimum upstream gateway dependencies.
+H. Run the upstream Python gateway using the actual discovery file.
+I. Run the upstream React/Vite example documented by Google.
+J. Open the local browser client.
+K. Determine whether the real Android screen is displayed.
+L. If displayed, test at least one real interaction (touch/click or hardware
+   key) and verify that the Android Emulator responds.
+M. If any step fails, stop at that failure and diagnose it rather than
+   jumping to an unrelated architecture.
+
+For every step, report:
+
+- exact command executed
+- observed result
+- whether it succeeded or failed
+- relevant logs/errors
+- what the result proves
+- what it does NOT prove
+- recommended next step
+
+At the end, provide a clear result:
+
+VALIDATED
+or
+BLOCKED
+
+If BLOCKED, identify the exact blocker and the smallest credible next
+experiment.
+
+Update PROCESS_LOG.md after this meaningful step using the mandatory rules
+in AGENTS.md. Preserve my exact prompt verbatim and record all commands,
+results, errors, dead ends, and the decision needed from me.
+
+Do not continue into full implementation after the experiment.
+Stop and report the results.
+```
+
+### Scope and Isolation
+
+- Re-read `AGENTS.md` and the start of the existing `PROCESS_LOG.md` before running experiment commands.
+- Used the official `google/android-emulator-container-scripts` repository in `/var/folders/57/86xvztc16tbdx4s4lvjn9ljw0000gn/T/healthtick-webrtc-experiment-20261008/upstream`, outside the production repository. The sparse checkout contains `gateway/` and `js/`.
+- Created an isolated environment at `/var/folders/57/86xvztc16tbdx4s4lvjn9ljw0000gn/T/healthtick-webrtc-experiment-20261008/venv` with Python 3.11.16.
+- No production frontend/backend, Docker setup, deployment, npm install, browser session, screen capture, or emulator interaction was attempted. No discovery token was copied into this log.
+
+### Step Results and Commands
+
+#### A. Verify Pixel_7 configuration — SUCCEEDED
+
+```sh
+SDK="$HOME/Library/Android/sdk"; AVD="$HOME/.android/avd/Pixel_7.avd/config.ini"; "$SDK/emulator/emulator" -list-avds; grep -E '^(abi.type|hw.cpu.arch|image.sysdir.1|hw.ramSize|hw.lcd.width|hw.lcd.height|avd.ini.displayname)=' "$AVD"; test -d "$SDK/system-images/android-34/default/arm64-v8a" && printf '%s\n' 'android-34/default/arm64-v8a present'; "$SDK/platform-tools/adb" devices -l
+```
+
+Observed AVD `Pixel_7` / display name `Pixel 7`, ABI/CPU `arm64-v8a` / `arm64`, installed Android 34 default arm64 image, 2048 MB configured RAM, and display 1080 x 2400. No device was running before startup. This proves the configured AVD and image exist, not that boot or RTC works. Next: launch it with gRPC enabled.
+
+#### B. Start emulator with gRPC — SUCCEEDED
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7 -grpc 8554
+```
+
+Launched in an attached background shell; output identified Emulator 35.6.11 and the Android 34 arm64 image. The emulator process ran as PID 63151. Startup showed non-fatal Qt/XR warnings and a transient ADB-offline warning during boot. This proves the emulator accepted `-grpc 8554` and started, not that the RTC RPC API is available. Next: verify boot, ADB, and the listening port.
+
+#### C. Verify emulator running/accessibility — SUCCEEDED
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -accel-check
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell getprop sys.boot_completed
+lsof -nP -iTCP:8554 -sTCP:LISTEN
+```
+
+Observed during this experiment: ADB device `emulator-5554` in `device` state, `sys.boot_completed` value `1`, and PID 63151 listening on TCP 8554. The Hypervisor.Framework acceleration check was observed in the preceding investigation, not rerun in this experiment. This proves the guest booted and the configured TCP port listens, not that the gateway's gRPC service methods work. Next: identify the process discovery file and probe its API.
+
+#### D. Identify actual discovery file — SUCCEEDED
+
+```sh
+find "$HOME/Library/Android/avd/running" "$HOME/Library/Caches/TemporaryItems/avd/running" -maxdepth 1 -type f -name '*.ini' -print 2>/dev/null
+```
+
+Observed `/Users/rajeshwer/Library/Caches/TemporaryItems/avd/running/pid_63151.ini`; inspected non-secret fields showed `avd.name=Pixel 7` and `grpc.port=8554`. The token value was not printed. This proves a discovery file was generated and advertises the listening port, not that gateway authentication/signaling works. Next: make an actual service-level gRPC probe.
+
+#### E. Verify gateway RTC gRPC API — INCONCLUSIVE; NOT REACHED
+
+```sh
+command -v grpcurl
+"$HOME/.local/bin/python3.11" -c 'import grpc; print("grpcio", grpc.__version__)'
+python3 -c 'import socket; s=socket.create_connection(("127.0.0.1",8554),2); print("TCP connection to emulator gRPC port succeeded"); s.close()'
+```
+
+Observed no `grpcurl`; importing `grpc` from the initially installed Python 3.11 environment failed with `ModuleNotFoundError: No module named 'grpc'`; raw TCP connection succeeded. This proves only TCP reachability. The expected RTC service/method was not invoked, so RTC capability remains unknown. Next: use the gateway's API after its documented build inputs are available.
+
+#### F. Prepare isolated Python 3.11 environment/upstream checkout — SUCCEEDED
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"; if [ -e "$EXPERIMENT_DIR" ]; then printf 'Refusing to reuse existing path: %s\n' "$EXPERIMENT_DIR"; exit 2; fi; mkdir -p "$EXPERIMENT_DIR"; git clone --depth 1 --filter=blob:none --sparse https://github.com/google/android-emulator-container-scripts.git "$EXPERIMENT_DIR/upstream" && git -C "$EXPERIMENT_DIR/upstream" sparse-checkout set gateway js && python3.11 -m venv "$EXPERIMENT_DIR/venv" && "$EXPERIMENT_DIR/venv/bin/python" --version && git -C "$EXPERIMENT_DIR/upstream" rev-parse --short HEAD
+```
+
+Observed successful official sparse checkout, commit `0aa7b0d`, and virtual-environment Python 3.11.16. This proves source/environment isolation and the declared Python-version prerequisite, not gateway installation/runtime. Next: install the upstream gateway.
+
+#### G. Install upstream gateway/dependencies — FAILED; FIRST BLOCKER
+
+```sh
+"$EXPERIMENT_DIR/venv/bin/python" -m pip install -e "$EXPERIMENT_DIR/upstream/gateway"
+```
+
+The editable build exited status 1:
+
+```text
+ERROR: BAZEL_ROOT environment variable is not set.
+Please set BAZEL_ROOT to the root of the emu-main-next workspace.
+ERROR: Failed building editable for goldfish-videobridge-gateway
+ERROR: Could not build wheels for goldfish-videobridge-gateway, which is required to install pyproject.toml-based projects
+```
+
+No `videobridge-gateway` entry point was installed; `pip list` contained only `pip` and `setuptools`. Inspected upstream `gateway/setup.py`: it requires `BAZEL_ROOT/hardware/google/aemu/protos` to contain the emulator-controller proto and the WebRTC `rtc_service_v2.proto` and `ice_config.proto`, then generates Python stubs under `gateway/src/videobridge_gateway/proto`. Upstream `gateway/setup_env.sh` calls `pip install -e .` without setting `BAZEL_ROOT`; the demo's fresh-checkout instructions omit this external build prerequisite.
+
+This proves the upstream documented fresh gateway install is incomplete without the `emu-main-next` proto source workspace/configuration. It does **not** prove the emulator lacks RTC support: no gRPC RPC was attempted. Recommended next step: retrieve the exact proto inputs (and any imports required to compile them) from the official Android Emulator `emu-main-next` source tree into an isolated temporary location, set `BAZEL_ROOT` there, retry the unmodified gateway install, and then probe the running native emulator. No architecture change is justified by this packaging/build-input failure.
+
+#### H–L. Gateway runtime, React/Vite, Chrome, frame, interaction — NOT RUN
+
+Stopped at the step G blocker as requested. No npm install or client startup command was issued; Chrome was not opened; real screen display and input were not tested.
+
+### Errors, Cleanup, and Repository State
+
+- `adb -e emu kill` was rejected by the command runner before execution because its process-termination safeguard interpreted the `kill` subcommand as an invalid process-kill command. This was a tool-policy rejection, not an emulator error.
+- Stopped the experiment's specific emulator process with `kill -TERM 63151`. Follow-up checks reported TCP 8554 closed and `adb -s emulator-5554 get-state` returned `device ... not found`; the AVD process exited.
+- An upstream fetch for nonexistent `gateway/requirements.txt` earlier returned HTTP 404; gateway dependencies/build configuration were verified from upstream `pyproject.toml`, `setup.py`, and `setup_env.sh`.
+- No production files or dependencies were changed; no npm packages, Docker, deployment, or secret material were used. Final `git diff --check` and production worktree status checks are still pending after this log append.
+
+### Result and User Decision Required
+
+**BLOCKED.** Exact current blocker: upstream gateway installation requires `BAZEL_ROOT` to reference an `emu-main-next` source workspace for gRPC proto generation; the documented setup script does not provide it. Native emulator boot, ADB readiness, actual discovery file generation, and gRPC TCP listening succeeded. RTC method compatibility and every gateway/browser step remain unverified. The user must decide whether to authorize fetching/preparing the official proto build inputs in the isolated temporary experiment directory and retrying the unmodified upstream gateway.
+
+---
+
+## Entry 004 — Authorization to Resolve the Upstream Proto Build Input
+
+### Time
+
+2026-10-08 — IST; exact selection time unavailable.
+
+### User Decision (verbatim)
+
+> Continue with isolated official proto inputs (Recommended)
+
+### What AI Did
+
+- Resumed only the blocked gateway-build investigation, retaining the official upstream checkout and Python 3.11 virtual environment in the isolated temporary experiment directory.
+- Confirmed `google/android-emulator-container-scripts` `gateway/setup.py` requires three proto sources under `BAZEL_ROOT/hardware/google/aemu/protos/services/...`.
+- Inspected the official AOSP `platform/hardware/google/aemu` repository top-level via Gitiles JSON; it has no `protos/` directory, so that guessed source location is not usable.
+- Inspected the official `platform/tools/base` `emulator/proto/README.md`, which says these proto files are copied from the Android Emulator code base and identifies `platform/external/qemu` branch `emu-master-dev`, directory `android/android-grpc`, as their master source.
+- The first Gitiles probes against `platform/hardware/google/aemu` paths and `platform/external/qemu` branch `main` returned HTTP 404; these were abandoned in favor of the branch/path named by the official proto README.
+
+### Errors / Failures
+
+No additional local installation or source-file download has occurred yet. The preceding editable gateway installation blocker remains unresolved; the gRPC RTC API has not been tested.
+
+### User Decision / Next Step
+
+The user authorized obtaining the official proto build inputs in isolation and retrying the unmodified upstream gateway installation. Next: verify the documented Android Emulator proto master source branch/path, stage only the required proto files (and import dependencies) in a temporary workspace, then retry the gateway install with `BAZEL_ROOT` set.
+
+---
+
+## Entry 005 — Gateway RPC Success; Upstream Browser Demo Blocked on Missing Dependency
+
+### Time
+
+2026-10-08 11:33 IST
+
+### User Decision (verbatim)
+
+> Continue with isolated official proto inputs (Recommended)
+
+### What AI Did
+
+- Verified the official `platform/tools/base` `mirror-goog-studio-main` source branch at commit `76ab4f9bcdb8e7911b580c6398df2a031be549ff`.
+- Used its officially mirrored `emulator/proto` files to stage only `emulator_controller.proto`, `rtc_service_v2.proto`, and `ice_config.proto` in the isolated temporary `BAZEL_ROOT` layout expected by the upstream gateway. Verified the proto headers and imports; imports were standard protobuf definitions and `ice_config.proto`.
+- Retried the unchanged upstream editable gateway install with `BAZEL_ROOT` set. Python 3.11.16 successfully built/installed the gateway and generated the Python gRPC stubs.
+- Restarted the same native `Pixel_7` AVD with gRPC on port 8554, confirmed boot completion and found the new discovery file `/Users/rajeshwer/Library/Caches/TemporaryItems/avd/running/pid_64133.ini`.
+- Started the unmodified upstream Python gateway on port 8080 with that discovery file. Its logs reported connection to Emulator gRPC at localhost:8554 and direct use of that channel for the RTC service.
+- Issued `GET /api/v1/emulator/status` through the gateway. The request returned HTTP 200 and real emulator data: version `35.6.11.0 (35.6.11-13610412)`, `booted: true`, hypervisor type 4, 16 CPU cores, and 2 GiB RAM. Hardware/platform config maps were empty.
+- Installed the isolated upstream example's npm dependencies. npm reported 7 vulnerabilities total (2 moderate, 5 high); no automatic fixes/audit-fix command was run. A production-dependencies-only audit reported 0 vulnerabilities.
+- Started the documented Vite dev command. Vite announced readiness at `http://127.0.0.1:5173/android-emulator-webrtc/`, but its dependency scan failed because `loglevel` imported by `js/src/components/emulator/net/logger.ts` was absent from the example's installed dependency tree.
+- Compared manifests: `js/package.json` declares `loglevel` (`^1.9.2`), but the upstream `js/example/package.json` does not declare it. `npm ls loglevel` in the example reported `(empty)`. This is a concrete upstream sample dependency omission.
+- Stopped the experiment's gateway, Vite, and exact emulator PID after this blocker. Follow-up showed ports 8080, 5173, and 8554 closed and ADB listed no devices.
+
+### Commands and Observed Results
+
+Official source reference:
+
+```sh
+git ls-remote https://android.googlesource.com/platform/tools/base refs/heads/mirror-goog-studio-main
+```
+
+Observed branch commit: `76ab4f9bcdb8e7911b580c6398df2a031be549ff`. The Gitiles directory `emulator/proto/` contained the three expected `.proto` files; its README states the files are copies of the emulator proto sources. Initial probes of `platform/hardware/google/aemu/.../protos` and `platform/external/qemu` branch `main` returned 404. The named `platform/external/qemu` branch `emu-master-dev` directory listing did not expose the expected WebRTC proto path, so that direct-source route was not used.
+
+Proto staging (files written only beneath the temp experiment directory):
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"; AOSP_ROOT="$EXPERIMENT_DIR/proto-source"; BASE="$AOSP_ROOT/hardware/google/aemu/protos"; mkdir -p "$BASE/services/emulator-controller" "$BASE/services/webrtc"; SOURCE='https://android.googlesource.com/platform/tools/base/+/76ab4f9bcdb8e7911b580c6398df2a031be549ff/emulator/proto'; for item in 'emulator_controller.proto services/emulator-controller' 'rtc_service_v2.proto services/webrtc' 'ice_config.proto services/webrtc'; do set -- $item; file="$1"; dest="$BASE/$2/$1"; curl --fail --silent --show-error "$SOURCE/$file?format=TEXT" | base64 -D > "$dest" || exit 1; done; find "$BASE/services" -type f -name '*.proto' -exec ls -l {} \;; grep -hE '^import ' "$BASE/services/emulator-controller/emulator_controller.proto" "$BASE/services/webrtc/rtc_service_v2.proto" "$BASE/services/webrtc/ice_config.proto"
+```
+
+Observed file sizes: emulator-controller 82,399 bytes; RTC service 5,822 bytes; ICE config 5,316 bytes. Imports were `google/protobuf/empty.proto`, `google/protobuf/any.proto`, `ice_config.proto`, and `google/protobuf/duration.proto`.
+
+Gateway install retry:
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"; BAZEL_ROOT="$EXPERIMENT_DIR/proto-source" "$EXPERIMENT_DIR/venv/bin/python" -m pip install -e "$EXPERIMENT_DIR/upstream/gateway"
+```
+
+Observed successful editable-wheel build and installation of `goldfish-videobridge-gateway`, `grpcio 1.84.0`, `protobuf 7.36.2`, `aiohttp 3.14.4`, `websockets 17.2`, and transitive dependencies into the isolated Python 3.11 environment.
+
+Emulator restart/readiness:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7 -grpc 8554
+"$HOME/Library/Android/sdk/platform-tools/adb" wait-for-device
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell getprop sys.boot_completed
+lsof -nP -iTCP:8554 -sTCP:LISTEN
+find "$HOME/Library/Caches/TemporaryItems/avd/running" -maxdepth 1 -type f -name '*.ini' -print 2>/dev/null
+```
+
+Observed ADB device `emulator-5554` ready, boot property `1`, gRPC listener PID 64133, and discovery path ending `pid_64133.ini`.
+
+Gateway and actual RPC-backed status request:
+
+```sh
+"$EXPERIMENT_DIR/venv/bin/videobridge-gateway" --port=8080 --discovery_file="$HOME/Library/Caches/TemporaryItems/avd/running/pid_64133.ini"
+curl --max-time 15 -sS -i http://127.0.0.1:8080/api/v1/emulator/status
+```
+
+Observed startup logs: `Connecting to Emulator gRPC service at: localhost:8554`, `No separate Video Bridge specified; using Emulator gRPC channel directly for Rtc service`, and `Gateway Webserver listening on http://0.0.0.0:8080`. The status request returned HTTP 200 and the real device metadata listed above. This proves Python 3.11 gateway operation and EmulatorController gRPC status. It does **not** prove the `Rtc.RequestRtcStream` method or media/data stream has been exercised.
+
+Frontend install/start:
+
+```sh
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm install
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm run dev -- --host 127.0.0.1
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm ls loglevel
+curl --max-time 10 -sS -I http://127.0.0.1:5173/
+```
+
+Observed npm install exit 0 and 7 reported vulnerabilities (2 moderate, 5 high). Vite 4.5.14 reported ready in 357 ms at the `/android-emulator-webrtc/` base path, then failed dependency resolution with:
+
+```text
+The following dependencies are imported but could not be resolved:
+  loglevel (imported by .../js/src/components/emulator/net/logger.ts)
+Are they installed?
+```
+
+`npm ls loglevel` returned `(empty)`. Vite's root returned HTTP 302 to `/android-emulator-webrtc/`; this is only the dev server's base-path redirect, not successful app rendering. `npm audit --omit=dev --audit-level=moderate` reported `found 0 vulnerabilities`; no audit fixes were applied.
+
+### Errors / Failures / Dead Ends
+
+- Fetches for guessed Gitiles proto paths under `platform/hardware/google/aemu` and branch `main` returned HTTP 404. The official Android Studio mirror was used instead.
+- A `view` request for a presumed `js/example/vite.config.ts` file returned file-not-found; it caused no source modification. The Vite diagnostic and package manifests identified the actual dependency issue.
+- Vite's dependency scan fails due to missing `loglevel` in the example install. The upstream source module declares it, but the example package does not. This is the first blocking failure in the browser-demo step.
+- No Chrome page was opened, no frame was seen, no `Rtc.RequestRtcStream` was invoked from the browser, and no touch/hardware input or latency was tested.
+- The test services and emulator were terminated after the failure; ports 8080/5173/8554 closed and ADB returned an empty device list.
+
+### Result and User Decision Required
+
+**BLOCKED.** Python 3.11 plus the upstream gateway can install and serve a successful real `EmulatorController` status RPC on native macOS. The browser stage currently cannot compile because the upstream Vite example omits its source package's `loglevel` dependency. Therefore RTC streaming, Chrome display, and input remain unvalidated. The next minimal action is to authorize adding/installing the missing upstream `loglevel` dependency in the isolated temporary demo only, restarting the unchanged gateway/emulator, and then opening the local demo in Chrome. No production code or architecture change is warranted.
+
+---
+
+## Entry 006 — Isolated JS Dependency Resolution and Missing Generated Proto
+
+### Time
+
+2026-10-08 11:39 IST
+
+### User Decision (verbatim)
+
+> Authorize isolated loglevel install and continue (Recommended)
+
+### What AI Did
+
+- Installed the upstream-declared `loglevel@^1.9.2` in the isolated example directory, as authorized. Vite still could not resolve it when imported from the sibling `js/src` tree because Node module lookup from that source tree does not search the child `js/example/node_modules`.
+- Confirmed `js/package.json` declares `loglevel`; installed the upstream package runtime dependencies at the `js/` source root without saving package/lock changes, making `loglevel` resolvable from `js/src`.
+- Ran the upstream example production build. The loglevel resolution problem was cleared (40 modules transformed), exposing the next required generated input: `js/src/proto/emulator_controller_pb.js` is absent.
+- Read the upstream `js/example/README.md`, `js/Makefile`, and `js/.gitignore`. The README explicitly requires running `make protoc` or `make build` in the `js/` root first; the Makefile requires a `protoc` executable plus the npm `protoc-gen-js` plugin; `.gitignore` excludes generated `src/proto/*pb.js`.
+- Checked the host and found `protoc` is not installed or on PATH. The system compiler was not installed, no generated proto file was created, and no Chrome/browser session was opened.
+
+### Commands and Results
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"; cd "$EXPERIMENT_DIR/upstream/js/example" && npm install 'loglevel@^1.9.2'
+```
+
+Succeeded; npm again reported 7 vulnerabilities total (2 moderate, 5 high), with no automatic fixes.
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"; kill -TERM 64802; npm install --prefix "$EXPERIMENT_DIR/upstream/js" --no-save --package-lock=false --omit=dev 'loglevel@^1.9.2' && node -e 'const path=process.argv[1]; console.log(require.resolve("loglevel", {paths:[path]}))' "$EXPERIMENT_DIR/upstream/js/src/components/emulator/net" && cd "$EXPERIMENT_DIR/upstream/js/example" && npm run build
+```
+
+Observed `loglevel` resolution at `js/node_modules/loglevel/lib/loglevel.js`; build then transformed 40 modules and failed with `Could not resolve "../../proto/emulator_controller_pb"` from the upstream `emulator.tsx`.
+
+```sh
+command -v protoc
+protoc --version
+command -v make
+make --version
+```
+
+Observed `protoc: command not found`; GNU Make 3.81 is installed.
+
+The upstream example dev server's first run reported unresolved `loglevel`; after the dependency install, the example root and transformed `App.tsx` returned HTTP 200, but this did not establish a successful browser application or WebRTC stream. The later production build proved the generated protobuf JS module is also required.
+
+### Errors / Failures
+
+- Installing loglevel under `js/example/node_modules` alone did not fix imports originating from sibling `js/src`; source-root resolution was confirmed and the dependency was installed in the upstream source root.
+- The upstream build then failed at the missing generated protobuf module.
+- Upstream docs provide the remedy (`make protoc`), but its compiler prerequisite (`protoc`) is absent. The Makefile says the compiler may be installed with Homebrew (`brew install protobuf`); no system-wide install was attempted.
+- Test emulator/gateway/Vite processes are stopped; ports 8080, 5173, and 8554 are closed; no ADB device remains.
+- The repository changes remain limited to this append-only process log; no upstream generated proto file exists and no source/build manifest in the production repository was changed.
+
+### Result and User Decision Required
+
+**BLOCKED.** The immediate browser build blocker is the absent generated `emulator_controller_pb.js`; the documented generator requires `protoc`, which is absent on the host. The user must decide whether to authorize a protobuf compiler setup for this isolated upstream experiment (recommended documented route: `brew install protobuf`, then the upstream `make protoc` target and its npm plugin prerequisites), or to stop here. RTC streaming, Chrome display, and real input remain untested.
+
+---
+
+## Entry 007 — Chrome Reaches Gateway; Emulator RTC RPC Is Unimplemented
+
+### Time
+
+2026-10-08 11:49 IST
+
+### User Decision (verbatim)
+
+> Authorize `brew install protobuf` and continue (Recommended)
+
+### What AI Did
+
+- Installed the user-authorized Homebrew `protobuf` compiler. Homebrew auto-updated its core/cask taps, installed `abseil` and `protobuf 36.2`, and ran its automatic cache cleanup; cached artifacts/logs for pcre2, portable-ruby, and several older packages were removed. This system-level change was authorized by the user.
+- Ran the upstream JavaScript protobuf generation target. The first invocation generated `emulator_controller_pb.js` but returned failure because the upstream Makefile hardcodes `python`, which is absent; only `python3` and Python 3.11 are present. The helper script is a standard-library-only prefix writer. Re-ran the target with its supported `PYTHON` override set to the existing Python 3.11 executable; `make -B protoc PYTHON="$HOME/.local/bin/python3.11"` succeeded.
+- The upstream example then built successfully with Vite/Rollup.
+- Started the same native `Pixel_7` AVD, upstream Vite client, and upstream Python 3.11 gateway, using the discovery file produced by that emulator process.
+- Opened the upstream example in the integrated Chrome-based browser. The shortcut URL with `?url=localhost:8080` returned Vite 403 due to the example's file-serving allowlist; opening the documented base page without query loaded the actual upstream demo form, where the gateway URI was entered manually.
+- Clicked the real upstream “Connect to Emulator” control. Chrome established the gateway WebSocket (`GET /api/v1/emulator/ws-jsep` returned 101), after which the gateway's actual `Rtc.RequestRtcStream` RPC returned gRPC `StatusCode.UNIMPLEMENTED`.
+- Stopped the experiment processes and confirmed ports 8080/5173/8554 closed and ADB had no running device.
+
+### Commands / Observed Results
+
+Compiler installation and generation:
+
+```sh
+brew install protobuf
+protoc --version
+cd "$EXPERIMENT_DIR/upstream/js" && make protoc
+cd "$EXPERIMENT_DIR/upstream/js" && make -B protoc PYTHON="$HOME/.local/bin/python3.11"
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm run build
+```
+
+`brew install protobuf` succeeded with `libprotoc 36.2`. Initial `make protoc` generated the 441,017-byte JS protobuf output, then failed with `make: python: No such file or directory` at `python eslint_prefix.py`. The retry with the Makefile's `PYTHON` variable set to Python 3.11 completed both compiler and helper steps with exit status 0. The upstream example `npm run build` then succeeded: 47 modules transformed and Vite generated its `dist` bundle.
+
+The upstream `js` root `npm install` performed by `make protoc` added 750 packages and reported 40 dependency vulnerabilities (3 moderate, 37 high). Earlier the example dependency install reported 7 (2 moderate, 5 high). No `npm audit fix` was run. These generated/dependency files exist only in the temporary upstream checkout, not in the production worktree.
+
+Runtime commands:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7 -grpc 8554
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm run dev -- --host 127.0.0.1
+"$EXPERIMENT_DIR/venv/bin/videobridge-gateway" --port=8080 --discovery_file="$HOME/Library/Caches/TemporaryItems/avd/running/pid_66229.ini"
+curl --max-time 15 -sS -i http://127.0.0.1:8080/api/v1/emulator/status
+```
+
+Observed the Vite page at `http://127.0.0.1:5173/android-emulator-webrtc/` and the gateway status response HTTP 200 with `booted: true`, emulator version `35.6.11.0 (35.6.11-13610412)`. The actual `RTC` gRPC operation failed:
+
+```text
+File ".../gateway_server.py", line 207, in handle_websocket_jsep
+  response = await rtc_stub.RequestRtcStream(stream_req, metadata=bridge_metadata)
+grpc.aio._call.AioRpcError:
+  status = StatusCode.UNIMPLEMENTED
+  details = ""
+```
+
+The browser logged a WebSocket-close warning and showed the upstream demo controls/connection panel, but no Android screen/video. The gateway log confirms the WebSocket handshake itself succeeded (HTTP 101); the server then rejected `RequestRtcStream`. The HTTP status RPC and GPS API are separate EmulatorController methods and had returned successfully; they do not substitute for RTC.
+
+Browser URL outcomes:
+
+- `http://127.0.0.1:5173/android-emulator-webrtc/?url=localhost:8080` returned `403 Restricted`, stating request `/?url=localhost:8080` was outside the Vite serving allow list.
+- `http://127.0.0.1:5173/android-emulator-webrtc/` loaded the upstream “Android Emulator WebRTC Demo” connection form in the browser.
+- After entering `127.0.0.1:8080` and clicking Connect, the frontend attempted the expected gateway WebSocket and triggered the real failing RTC RPC.
+
+Cleanup:
+
+```sh
+kill -TERM 66321
+kill -TERM 66227
+kill -TERM 66229
+```
+
+After waiting for the emulator's orderly snapshot shutdown, `ps`, `lsof` on ports 8080/5173/8554, and `adb devices -l` confirmed the processes/listeners were gone and no emulator remained.
+
+### Errors / Failures / Dead Ends
+
+- The first documented `make protoc` run failed only at the helper invocation because this host has no `python` alias. The supported Makefile override to the already-installed Python 3.11 succeeded; no additional Python install was needed.
+- The Vite query-string shortcut was denied by its `server.fs.allow` handling. The documented base URL and manual URI form worked, so no Vite configuration change was made.
+- The main architecture blocker is not a browser build failure: the installed native Android Emulator 35.6.11 accepts TCP gRPC and implements the `EmulatorController` status API, but its gRPC server returns `UNIMPLEMENTED` for `android.emulation.control.v2.Rtc.RequestRtcStream`, the method required by the upstream gateway. Therefore the WebRTC offer/media stream cannot start on this exact emulator build/configuration.
+- Chrome never displayed a real Android frame; no real touch/key input or latency was tested.
+- All runtime processes were stopped. No emulator/WebRTC source code or generated file was copied into the production tree.
+
+### Result and User Decision Required
+
+**BLOCKED.** The exact blocker is `StatusCode.UNIMPLEMENTED` from `Rtc.RequestRtcStream` on the user's native Android Emulator 35.6.11. This experimentally proves that this installed emulator build cannot serve this gateway's required RTC path; it does not prove that all native macOS Android Emulator releases are incompatible. The smallest credible next experiment is to identify, from official emulator release/source information, a native macOS Emulator build that implements this RTC v2 service, then repeat the same `RequestRtcStream` probe against the same AVD before opening the browser. Do not alter the architecture or install/update another emulator package until that candidate version and required change are confirmed with the user. The user must decide whether to authorize that narrow official-version investigation.
+
+---
+
+## Entry 008 — Official Native Emulator Version Follow-Up (Research Only)
+
+### Time
+
+2026-10-08 11:52 IST
+
+### User Decision (verbatim)
+
+> Investigate official native emulator support (Recommended)
+
+### What AI Did
+
+- Reviewed Google's official Android Emulator release notes, the official Android Emulator archive guidance, the Google `android-emulator-container-scripts` merged WebRTC v2 pull request, and the official `platform/tools/base` RTC proto documentation.
+- Verified that Google's release notes identify Android Emulator 37.2.12 as Stable (September 29, 2026); the notes include a macOS Apple Silicon gRPC `streamScreenshot` fix. They also list 37.1.11 and 36.6.11 stable releases.
+- Verified that merged upstream PR `google/android-emulator-container-scripts#415` describes the new gateway as calling the native `android.emulation.control.v2.Rtc` gRPC service on port 8554.
+- The official `rtc_service_v2.proto` labels RTC experimental and defines `Rtc.RequestRtcStream`. No version floor or release note guaranteeing this method on the native macOS emulator was found in the reviewed official sources.
+- Did not query SDK Manager for install/update, download any newer emulator, modify the SDK, or restart the emulator. Current installed binary remains 35.6.11.0.
+
+### Errors / Failures
+
+- GitHub code/repository searches did not reveal a documented minimum native emulator version supporting `RequestRtcStream`.
+- Official Android Emulator release notes discuss gRPC screenshot support on current macOS, but that does not establish the separate RTC service's presence.
+- Therefore 37.2.12 is a concrete latest-stable candidate to test, **not** a verified RTC-capable version.
+
+### Recommendation and User Decision
+
+Architecture remains unchanged. The smallest credible next experiment is to obtain the official native macOS Emulator 37.2.12 package in a separate temporary SDK/package location if feasible, launch the same `Pixel_7` AVD using `-grpc 8554`, and invoke the exact same gateway `Rtc.RequestRtcStream` probe before attempting another browser session. This isolates version capability without overwriting the currently installed emulator. Whether a side-by-side package location can run against the current SDK/AVD needs verification before doing it.
+
+The user authorized source/version investigation only; the user must now decide whether to authorize this isolated newer-native-emulator runtime test. No further install or SDK mutation was performed.
+
+---
+
+## Entry 009 — Authorized Final Native Emulator Version Experiment
+
+### Time
+
+2026-10-08 12:08 IST
+
+### User Prompt (verbatim)
+
+```text
+We need to move quickly now.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+The previous technical experiment is officially recorded as:
+
+Emulator 35.6.11
+→ Python Gateway
+→ Google WebRTC
+→ React browser
+→ Rtc.RequestRtcStream
+→ UNIMPLEMENTED
+
+The assignment does NOT require Google's Rtc.RequestRtcStream specifically.
+It requires a real live Android device in the browser with interaction.
+
+Therefore this is our LAST small experiment with the Google native RTC path.
+
+TASK:
+
+Test the latest stable Android Emulator available through the Android SDK
+that is appropriate for this macOS Apple Silicon machine.
+
+Do NOT redesign the application.
+Do NOT build production frontend/backend.
+Do NOT build mock UI.
+Do NOT install Docker Desktop.
+Do NOT add unrelated dependencies.
+
+Goal:
+
+Determine whether a newer official Android Emulator implementation supports
+the RTC service required by the existing Google Python Gateway.
+
+Process:
+
+1. Verify the currently installed Android Emulator version.
+
+2. Check the official Android Emulator release/update information.
+
+3. If an appropriate newer stable version is available, upgrade the Android
+   Emulator using the normal Android SDK tooling.
+
+4. Verify the resulting emulator version.
+
+5. Reuse the existing Pixel_7 AVD if compatible.
+
+6. Boot Pixel_7 with the gRPC configuration required by the Google gateway.
+
+7. Generate/locate the correct discovery file.
+
+8. Start the existing isolated Python 3.11 gateway.
+
+9. Start the existing upstream React/Vite WebRTC demo.
+
+10. Attempt the same Rtc.RequestRtcStream flow.
+
+11. Determine whether a REAL Android video frame appears in the browser.
+
+12. If the stream works, test ONE real browser interaction such as tapping
+    an Android UI element and verify that the emulator responds.
+
+13. If the stream does not work, STOP. Do not start implementing another
+    architecture in this task.
+
+Report:
+
+- emulator version before
+- emulator version after
+- exact commands used
+- whether RTC.RequestRtcStream works
+- whether a real Android frame appears
+- whether browser input works
+- exact error if it fails
+- what this proves
+- what it does not prove
+
+IMPORTANT:
+
+If the newer emulator still returns UNIMPLEMENTED, classify the Google native
+RTC path as BLOCKED for this Mac experiment and STOP.
+
+Do not spend additional time trying random emulator flags or undocumented
+workarounds.
+
+After the experiment, update PROCESS_LOG.md according to AGENTS.md,
+including my exact prompt verbatim, commands, results, errors, failures,
+and the resulting decision.
+
+Do not implement the fallback streaming architecture yet.
+
+Stop and report the result.
+```
+
+### What AI Did / Initial Checks
+
+- Re-read `AGENTS.md` and the existing `PROCESS_LOG.md` before running experiment commands.
+- Confirmed the installed emulator reports 35.6.11.0 (build ID 13610412); SDK Manager lists installed package `emulator | 35.6.11`.
+- Checked the official Android Emulator release notes. They list 37.2.12 Stable (September 29, 2026), including a macOS Apple Silicon gRPC screenshot fix. This release note does not specifically promise that `Rtc.RequestRtcStream` is implemented.
+- Ran SDK Manager package listing. It lists emulator 37.2.12 as latest available and shows an available update from 35.6.11 to 37.2.12. SDK Manager also lists command-line tools 23.0 and Platform-Tools 37.0.1 updates, which are out of scope and must not be installed for this experiment.
+- Verified the existing `Pixel_7` AVD remains Android 34 arm64, 1080x2400, configured RAM 2048 MB, and its Android 34 default arm64 system image exists. No emulator/runtime service was active before the update.
+- Observed 5.6 GiB free on the SDK filesystem; the upgrade has not yet been attempted, so download/install feasibility is not established.
+
+### Exact Commands Already Performed
+
+```sh
+git status --short --branch
+git diff --check
+"$HOME/Library/Android/sdk/emulator/emulator" -version
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --list_installed
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --list --channel=0
+df -h "$HOME/Library/Android/sdk"
+"$HOME/Library/Android/sdk/emulator/emulator" -list-avds
+grep -E '^(avd.ini.displayname|abi.type|hw.cpu.arch|image.sysdir.1|hw.ramSize|hw.lcd.width|hw.lcd.height)=' "$HOME/.android/avd/Pixel_7.avd/config.ini"
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+```
+
+### Errors / Failures / Resulting Decision
+
+No SDK upgrade or runtime test has occurred yet. Initial checks succeeded. Continue by installing only the `emulator` SDK package at the listed stable version through SDK Manager, then verify the package version before launching the existing AVD.
+
+### User Decision / Next Step
+
+The user's prompt explicitly authorizes the normal Android SDK tooling upgrade. No additional approval is required to install emulator 37.2.12. Do not update command-line tools, Platform-Tools, AVD image, or unrelated packages.
+
+---
+
+## Entry 010 — Latest Stable Emulator RTC Retry (Still Blocked)
+
+### Time
+
+2026-10-08 12:15 IST
+
+### User Prompt (verbatim)
+
+```text
+We need to move quickly now.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+The previous technical experiment is officially recorded as:
+
+Emulator 35.6.11
+→ Python Gateway
+→ Google WebRTC
+→ React browser
+→ Rtc.RequestRtcStream
+→ UNIMPLEMENTED
+
+The assignment does NOT require Google's Rtc.RequestRtcStream specifically.
+It requires a real live Android device in the browser with interaction.
+
+Therefore this is our LAST small experiment with the Google native RTC path.
+
+TASK:
+
+Test the latest stable Android Emulator available through the Android SDK
+that is appropriate for this macOS Apple Silicon machine.
+
+Do NOT redesign the application.
+Do NOT build production frontend/backend.
+Do NOT build mock UI.
+Do NOT install Docker Desktop.
+Do NOT add unrelated dependencies.
+
+Goal:
+
+Determine whether a newer official Android Emulator implementation supports
+the RTC service required by the existing Google Python Gateway.
+
+Process:
+
+1. Verify the currently installed Android Emulator version.
+
+2. Check the official Android Emulator release/update information.
+
+3. If an appropriate newer stable version is available, upgrade the Android
+   Emulator using the normal Android SDK tooling.
+
+4. Verify the resulting emulator version.
+
+5. Reuse the existing Pixel_7 AVD if compatible.
+
+6. Boot Pixel_7 with the gRPC configuration required by the Google gateway.
+
+7. Generate/locate the correct discovery file.
+
+8. Start the existing isolated Python 3.11 gateway.
+
+9. Start the existing upstream React/Vite WebRTC demo.
+
+10. Attempt the same Rtc.RequestRtcStream flow.
+
+11. Determine whether a REAL Android video frame appears in the browser.
+
+12. If the stream works, test ONE real browser interaction such as tapping
+    an Android UI element and verify that the emulator responds.
+
+13. If the stream does not work, STOP. Do not start implementing another
+    architecture in this task.
+
+Report:
+
+- emulator version before
+- emulator version after
+- exact commands used
+- whether RTC.RequestRtcStream works
+- whether a real Android frame appears
+- whether browser input works
+- exact error if it fails
+- what this proves
+- what it does not prove
+
+IMPORTANT:
+
+If the newer emulator still returns UNIMPLEMENTED, classify the Google native
+RTC path as BLOCKED for this Mac experiment and STOP.
+
+Do not spend additional time trying random emulator flags or undocumented
+workarounds.
+
+After the experiment, update PROCESS_LOG.md according to AGENTS.md,
+including my exact prompt verbatim, commands, results, errors, failures,
+and the resulting decision.
+
+Do not implement the fallback streaming architecture yet.
+
+Stop and report the result.
+```
+
+### Commands Performed
+
+Initial inventory and official release check:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -version
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --list_installed
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --list --channel=0
+df -h "$HOME/Library/Android/sdk"
+"$HOME/Library/Android/sdk/emulator/emulator" -list-avds
+grep -E '^(avd.ini.displayname|abi.type|hw.cpu.arch|image.sysdir.1|hw.ramSize|hw.lcd.width|hw.lcd.height)=' "$HOME/.android/avd/Pixel_7.avd/config.ini"
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+```
+
+Observed before version 35.6.11.0 (build ID 13610412). Official Android Emulator release notes identify 37.2.12 Stable (September 29, 2026); SDK Manager listed `emulator 37.2.12` as the available update from installed 35.6.11. SDK filesystem had 5.6 GiB free. `Pixel_7` was present and its API 34 arm64 image was installed.
+
+SDK update and verification:
+
+```sh
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --install 'emulator'
+"$HOME/Library/Android/sdk/emulator/emulator" -version
+"$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager" --list_installed
+"$HOME/Library/Android/sdk/emulator/emulator" -list-avds
+test -d "$HOME/Library/Android/sdk/system-images/android-34/default/arm64-v8a"
+df -h "$HOME/Library/Android/sdk"
+```
+
+SDK Manager successfully installed only the `emulator` package (37.2.12, build ID 16428233). Command-line tools, platform-tools, and system images were not updated. AVD `Pixel_7` and the API 34 arm64 image remained present. Free space after install: 5.3 GiB.
+
+Emulator start and discovery:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7 -grpc 8554
+"$HOME/Library/Android/sdk/platform-tools/adb" wait-for-device
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell getprop sys.boot_completed
+lsof -nP -iTCP:8554 -sTCP:LISTEN
+find "$HOME/Library/Caches/TemporaryItems/avd/running" -maxdepth 1 -type f -name '*.ini' -print
+```
+
+Observed Emulator 37.2.12 launch, `emulator-5554` in `device` state, `sys.boot_completed=1`, TCP listener on port 8554, and active discovery file `/Users/rajeshwer/Library/Caches/TemporaryItems/avd/running/pid_68732.ini`. Non-secret discovery fields were `avd.name=Pixel 7` and `grpc.port=8554`. Emulator startup logged `Increasing RAM size to 2560MB`; no assertion is made that this changed the saved AVD configuration.
+
+Gateway and Vite startup:
+
+```sh
+EXPERIMENT_DIR="${TMPDIR:-/tmp}/healthtick-webrtc-experiment-20261008"
+"$EXPERIMENT_DIR/venv/bin/videobridge-gateway" --port=8080 --discovery_file="$HOME/Library/Caches/TemporaryItems/avd/running/pid_68732.ini"
+cd "$EXPERIMENT_DIR/upstream/js/example" && npm run dev -- --host 127.0.0.1
+curl --max-time 15 -sS -i http://127.0.0.1:8080/api/v1/emulator/status
+curl --max-time 10 -sS -o /dev/null -w 'HTTP %{http_code} %{content_type}\n' http://127.0.0.1:5173/android-emulator-webrtc/
+```
+
+Gateway connected to localhost:8554 and bound port 8080. Status endpoint returned HTTP 200 with emulator version `37.2.12.0 (37.2.12-16428233)`, `booted: true`, 16 CPU cores, and 2.5 GiB RAM. Vite 4.5.14 reported ready at `http://127.0.0.1:5173/android-emulator-webrtc/`; the page returned HTTP 200.
+
+Chrome interaction:
+
+- Navigated the existing integrated Chrome page to `http://127.0.0.1:5173/android-emulator-webrtc/`.
+- Entered gateway URI `127.0.0.1:8080` and clicked “Connect to Emulator”.
+- The gateway logs record the browser WebSocket route returning HTTP 101, then the same RTC call failure shown below.
+
+### Result
+
+**BLOCKED.** `Rtc.RequestRtcStream` does not work on the latest stable native macOS Emulator available through SDK Manager (37.2.12). Gateway error:
+
+```text
+grpc.aio._call.AioRpcError:
+  status = StatusCode.UNIMPLEMENTED
+  details = ""
+  debug_error_string = "UNIMPLEMENTED"
+```
+
+The exception occurs at the gateway call to `rtc_stub.RequestRtcStream(...)`. Chrome shows the demo controls but no real Android video frame; the WebSocket closes before SDP/WebRTC setup. Browser input was not tested because no device stream existed. Some demo interaction logs ignored pointer coordinates as out of bounds; those are not evidence of device input reaching the emulator.
+
+### What This Proves / Does Not Prove
+
+- Proves that this current native Mac setup—Google Python Gateway and Android Emulator 37.2.12.0 with the existing `Pixel_7` AVD—does not implement the RTC v2 method required by the Google gateway.
+- Proves that the gateway can still call the separate EmulatorController status RPC successfully, and that Chrome can load the upstream demo and reach its WebSocket endpoint.
+- Does not prove every Android Emulator version/platform lacks this RTC service, nor that another real-emulator streaming transport cannot satisfy the assignment.
+- Does not validate live video, browser-to-device input, or latency.
+
+### Errors, Cleanup, and Decision
+
+- No additional emulator flags, undocumented workarounds, or alternate architecture were attempted.
+- Stopped the gateway, Vite, and the exact Emulator PID (68732) with targeted `kill -TERM` commands. After waiting for orderly emulator shutdown, checked `ps`, listeners on 8080/5173/8554, and `adb devices -l`; no test emulator or service remained.
+- The new stable emulator package 37.2.12 remains installed through Android SDK Manager. No production implementation, Docker, deployment, mock UI, or other SDK package was added.
+- Final verification: `git diff --check` passed; `git status --short --branch` reports only `M PROCESS_LOG.md`; no generated or experiment runtime files were added to the repository. `adb devices -l` lists no devices, and no listeners remain on 8080/5173/8554. The saved `Pixel_7.avd/config.ini` still reports `hw.ramSize=2048`, so the 2560 MB startup message did not persist as a configuration change. Installed emulator reports 37.2.12.0 (build ID 16428233).
+
+The Google native RTC path is **BLOCKED for this Mac experiment**. The user’s assignment accepts other real-device streaming paths, but fallback architecture is explicitly outside this task. The next decision is whether to begin a separately scoped investigation of an alternative real Android Emulator streaming transport; no alternative has been selected or implemented.
+
+---
+
+## Entry 011 — Native scrcpy/FFmpeg Browser Screen-Capture Experiment
+
+### Time
+
+2026-10-08 12:33 IST
+
+### User Prompt (verbatim)
+
+```text
+We are moving to the fallback real-device streaming experiment.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+IMPORTANT CONTEXT:
+
+The previous two experiments tested the Google native Android Emulator
+WebRTC/RTC path:
+
+1. Emulator 35.6.11.0
+   → Python Gateway
+   → Google WebRTC
+   → Rtc.RequestRtcStream
+   → UNIMPLEMENTED
+
+2. Emulator 37.2.12.0
+   → Python Gateway
+   → Google WebRTC
+   → Rtc.RequestRtcStream
+   → UNIMPLEMENTED
+
+Therefore the Google native RTC path is now officially BLOCKED for this
+macOS experiment.
+
+Do NOT spend any more time on:
+- Rtc.RequestRtcStream
+- undocumented emulator RTC flags
+- random emulator flags
+- upgrading the emulator again
+- Docker Desktop
+- fake/mock Android screens
+- simulated device UI
+
+The assignment does NOT require Google's RTC implementation specifically.
+The assignment requires a REAL Android environment displayed and controlled
+from a browser.
+
+Our next goal is to find and validate a simple alternative transport.
+
+==================================================
+EXPERIMENT GOAL
+==================================================
+
+Prove that we can display the REAL Pixel_7 Android Emulator screen inside
+a browser without using Google's native RTC service.
+
+For this experiment ONLY, focus on:
+
+Android Emulator
+        ↓
+real screen capture
+        ↓
+local transport
+        ↓
+browser
+        ↓
+REAL Android screen
+
+Do NOT implement the complete production application yet.
+
+Do NOT implement authentication.
+
+Do NOT implement database.
+
+Do NOT implement polished UI.
+
+Do NOT implement deployment.
+
+Do NOT implement bonuses.
+
+Do NOT implement the complete input system yet.
+
+The only required success criterion for this experiment is:
+
+A real Pixel_7 Android Emulator screen must appear in the browser and
+continue updating without manually refreshing the browser.
+
+==================================================
+RESEARCH FIRST
+==================================================
+
+Before writing implementation code, investigate practical open-source
+ways to capture the Android Emulator screen that are compatible with this
+macOS Apple Silicon environment.
+
+Prioritize approaches that can provide real-time or near-real-time frames
+to a browser.
+
+Consider, at minimum:
+
+1. ADB-based screen capture
+2. Android `screenrecord`
+3. scrcpy or components of scrcpy
+4. FFmpeg-based conversion/transport
+5. MJPEG or another browser-compatible streaming format
+6. WebSocket-based frame transport
+7. WebRTC only if it does NOT depend on the blocked Google Emulator RTC API
+
+Use authoritative documentation or official project documentation where
+possible.
+
+Do not assume a technology works just because it sounds appropriate.
+Verify the actual capabilities and commands before choosing it.
+
+==================================================
+IMPORTANT DESIGN PRINCIPLE
+==================================================
+
+Choose the SIMPLEST approach that can prove the real screen can reach the
+browser.
+
+Reliability and speed are more important than building a sophisticated
+media architecture during this experiment.
+
+If a simple ADB screenshot stream can prove the vertical path quickly,
+that is acceptable as an EXPERIMENT.
+
+However, explicitly measure/observe its approximate update rate and
+latency and state whether it is likely sufficient for the final assignment.
+
+If the simple approach is clearly unsuitable for the final real-time
+requirement, document that and test the next most promising approach.
+
+Do not hide limitations.
+
+==================================================
+LOCAL ENVIRONMENT
+==================================================
+
+We are working on:
+
+macOS Apple Silicon
+
+Existing Android Emulator:
+37.2.12.0
+
+Existing AVD:
+Pixel_7
+
+Android:
+34 arm64
+
+ADB:
+already installed and previously verified
+
+The Google Python Gateway and upstream React WebRTC demo are NOT required
+for this experiment unless they become useful for comparison.
+
+Reuse the existing Pixel_7 AVD.
+
+Do not create another emulator unless the existing AVD is genuinely
+incompatible.
+
+==================================================
+EXPERIMENT STEPS
+==================================================
+
+1. Verify the current Android Emulator version.
+
+2. Start Pixel_7.
+
+3. Verify through ADB that the emulator is fully booted.
+
+4. Verify that ADB can capture the REAL emulator screen.
+
+5. Test the simplest viable screen-capture method.
+
+6. Build only the minimum temporary browser/backend code needed to display
+   those REAL frames in a browser.
+
+7. Open the browser.
+
+8. Confirm that the browser displays the REAL Android UI.
+
+9. Change something visible on the Android emulator, for example:
+   - open/close an app
+   - open the notification shade
+   - navigate to another screen
+
+10. Verify that the browser view changes automatically without a browser
+    refresh.
+
+11. Estimate the update rate and visible latency.
+
+12. If the first method is too slow for a convincing real-time experience,
+    test the next most promising open-source method.
+
+13. Stop once we have either:
+    A. a convincing real-time/near-real-time browser stream, OR
+    B. clear evidence that the tested fallback approach is unsuitable.
+
+==================================================
+STRICT STOP CONDITIONS
+==================================================
+
+If a method fails because of a missing dependency, investigate only the
+smallest necessary fix.
+
+Do not spend a long time debugging an approach that is fundamentally
+unsuitable.
+
+If the chosen method becomes complicated enough that we are effectively
+building a new media server before proving basic browser streaming,
+STOP and report the problem.
+
+Do not start implementing the final architecture automatically.
+
+Do not add unrelated packages to the main project unless absolutely
+necessary.
+
+Prefer isolated experiment dependencies where practical.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+SUCCESS means:
+
+- Pixel_7 is a real Android Emulator.
+- Browser displays frames captured from that emulator.
+- Frames update without browser refresh.
+- Changing the Android emulator screen causes the browser view to change.
+- No fake/mock/simulated Android screen is used.
+
+Record:
+
+- capture method
+- transport method
+- exact commands
+- dependencies installed
+- browser technology used
+- approximate frame/update rate
+- approximate visible latency
+- CPU/resource observations if obvious
+- problems encountered
+- whether this approach is suitable for the final assignment
+- what would still be required for browser → Android input
+
+==================================================
+PROCESS_LOG REQUIREMENT
+==================================================
+
+After the experiment, update PROCESS_LOG.md according to AGENTS.md.
+
+Append a new entry only.
+
+Include:
+
+- time
+- my exact prompt above verbatim
+- what you investigated
+- sources/documentation consulted
+- commands used
+- files created/changed
+- errors/failures
+- successful results
+- dead ends
+- performance observations
+- your conclusion
+- what I need to decide next
+
+NEVER rewrite or delete previous PROCESS_LOG entries.
+
+==================================================
+GIT SAFETY
+==================================================
+
+Do not commit automatically.
+
+Before finishing, run:
+
+git status
+git diff --check
+
+Clearly report exactly which project files changed.
+
+Do not modify README architecture claims unless the experiment actually
+proves the new architecture.
+
+==================================================
+FINAL REPORT
+==================================================
+
+At the end, report exactly:
+
+RESULT: SUCCESS / PARTIAL / BLOCKED
+
+Capture method:
+Transport:
+
+Real Android frame in browser:
+YES / NO
+
+Browser auto-updated:
+YES / NO
+
+Approximate update rate:
+
+Approximate visible latency:
+
+Browser → Android input:
+NOT TESTED
+
+Main technical limitation:
+
+Is this suitable as the foundation for the final assignment:
+YES / NO / NEEDS ANOTHER EXPERIMENT
+
+Recommended next step:
+
+Then STOP.
+
+Do not implement the complete application in this task.
+```
+
+### What Was Investigated and Sources Consulted
+
+- Re-read `AGENTS.md` and `PROCESS_LOG.md` before the experiment.
+- Verified Android Emulator **37.2.12.0 (build 16428233)**, the existing `Pixel_7` AVD, and its Android 34 arm64 image; verified macOS 27.0/arm64 and SDK ADB 36.0.0. The `adb` executable was not on shell `PATH`, so commands used the SDK-installed executable at `$HOME/Library/Android/sdk/platform-tools/adb`.
+- Consulted the Android Developers ADB/screen-capture page: https://developer.android.com/tools/adb#screencap
+- Consulted the official scrcpy project README and documentation:
+  - https://github.com/Genymobile/scrcpy
+  - https://github.com/Genymobile/scrcpy/blob/master/doc/macos.md
+  - https://github.com/Genymobile/scrcpy/blob/master/doc/video.md
+  - https://github.com/Genymobile/scrcpy/blob/master/doc/recording.md
+  - https://github.com/Genymobile/scrcpy/blob/master/doc/develop.md
+- The upstream scrcpy README says macOS is supported and advertises 30–120 FPS and 35–70 ms latency; those are upstream claims, not measurements for this experiment. Its documentation confirms the device-side server sends raw H.264 by default and the client can record video to Matroska.
+- Checked Android's on-device `screenrecord --help`. The installed Android 34 tool records MP4 to a filename, defaults to a 180-second limit (with `--time-limit 0` to remove it), and does not document a raw-H.264 stdout mode. Did not use it for a browser stream.
+- Queried installed FFmpeg (`ffmpeg -hide_banner -h muxer=mpjpeg`); the installed build exposes an `mpjpeg` MIME multipart JPEG muxer with a configurable boundary, providing a browser `<img>` stream format without a separate browser media decoder.
+
+### Commands and Observed Results
+
+Environment, AVD, and boot:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -version
+"$HOME/Library/Android/sdk/emulator/emulator" -list-avds
+"$HOME/Library/Android/sdk/platform-tools/adb" version
+sw_vers
+uname -m
+grep -E '^(avd.ini.displayname|abi.type|hw.cpu.arch|image.sysdir.1|hw.ramSize|hw.lcd.width|hw.lcd.height)=' "$HOME/.android/avd/Pixel_7.avd/config.ini"
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7
+"$HOME/Library/Android/sdk/platform-tools/adb" wait-for-device
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell getprop sys.boot_completed
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+```
+
+Observed Emulator 37.2.12.0 and `Pixel_7`. Boot completed (`sys.boot_completed=1`); ADB listed `emulator-5554` in `device` state. Existing display was 1080x2400 at density 420.
+
+Direct ADB capture and throughput check:
+
+```sh
+mkdir -p /tmp/healthtick-fallback-20261008
+"$HOME/Library/Android/sdk/platform-tools/adb" -e exec-out screencap -p > /tmp/healthtick-fallback-20261008/pixel7-initial.png
+file /tmp/healthtick-fallback-20261008/pixel7-initial.png
+sips -g pixelWidth -g pixelHeight /tmp/healthtick-fallback-20261008/pixel7-initial.png
+python3.11 - <<'PY'
+import subprocess, time, statistics
+adb = '/Users/rajeshwer/Library/Android/sdk/platform-tools/adb'
+values=[]
+start=time.perf_counter()
+for _ in range(15):
+    t=time.perf_counter()
+    result=subprocess.run([adb,'-e','exec-out','screencap','-p'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=True)
+    values.append((time.perf_counter()-t)*1000)
+elapsed=time.perf_counter()-start
+print(f'capture_count={len(values)} total_s={elapsed:.3f} approximate_serial_fps={len(values)/elapsed:.2f}')
+print(f'capture_ms_median={statistics.median(values):.1f} p95={sorted(values)[int(.95*(len(values)-1))]:.1f} min={min(values):.1f} max={max(values):.1f}')
+print(f'png_bytes_last={len(result.stdout)}')
+PY
+```
+
+Capture succeeded and produced a viewable real Android home screen PNG at 1080x2400. One screenshot took 1.164 s. Fifteen serial captures took 10.819 s: **1.39 captures/s**, median 700.1 ms, p95 837.0 ms, last PNG 1,307,340 bytes. This proved ADB capture reaches a real screen but was too slow and bandwidth-heavy to serve as the live path.
+
+Capture-method documentation checks and relevant dependency installation:
+
+```sh
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell screenrecord --help
+ffmpeg -hide_banner -h muxer=mpjpeg
+brew info scrcpy
+brew list --versions ffmpeg libusb sdl3 scrcpy
+brew install scrcpy
+PATH="/opt/homebrew/bin:$HOME/Library/Android/sdk/platform-tools:$PATH" scrcpy --version
+PATH="/opt/homebrew/bin:$HOME/Library/Android/sdk/platform-tools:$PATH" scrcpy --help | grep -E -- '--no-window|--no-playback|--record-format|--max-size|--max-fps'
+```
+
+`brew install scrcpy` installed scrcpy 5.0 and missing `libusb`; Homebrew also upgraded already-installed dependency formulas: `ffmpeg` 9.0.1_1→9.0.2, `libvmaf` 3.2.0→3.2.1, `ca-certificates` 2026-08-13→2026-09-25, `openssl@3` 3.6.3→3.6.5, `sdl3` 3.4.14→3.4.18, `sdl2-compat` 2.32.70→2.32.74, and `xz` 5.8.3→5.8.4. This was an unanticipated Homebrew dependency resolution side effect; no Homebrew or experiment files were added to the project.
+
+Verified scrcpy-to-FFmpeg FIFO input:
+
+```sh
+mkfifo /tmp/healthtick-fallback-20261008/scrcpy-video.mkv
+ffmpeg -hide_banner -loglevel info -i /tmp/healthtick-fallback-20261008/scrcpy-video.mkv -an -f null -
+scrcpy --no-window --no-playback --no-control --no-audio --max-size=720 --max-fps=20 --record=/tmp/healthtick-fallback-20261008/scrcpy-video.mkv --record-format=mkv
+```
+
+The isolated Python test launched FFmpeg reading the FIFO, launched scrcpy writing its documented MKV recording to the FIFO, ran for 10 seconds, then stopped the child processes. Both exited with code 0 and FFmpeg decoded 11 H.264 frames (324x720, 10 fps timebase). The first attempt did not establish live browser delivery; the downstream end-to-end test below was needed to validate streaming behavior.
+
+Temporary bridge and browser test:
+
+```sh
+python3.11 -m py_compile /tmp/healthtick-fallback-20261008/server.py
+python3.11 /tmp/healthtick-fallback-20261008/server.py
+curl --max-time 5 -sS -i http://127.0.0.1:8765/
+curl --max-time 5 -sS http://127.0.0.1:8765/metrics
+```
+
+The temporary file `/tmp/healthtick-fallback-20261008/server.py` uses only Python 3.11 standard-library HTTP/threading/process APIs. It starts scrcpy (H.264 capture/record to a local Matroska FIFO), FFmpeg (decode and transcode to multipart JPEG), and serves the page and `/stream.mjpg` at `http://127.0.0.1:8765/`. The browser displays the stream in an `<img>` and polls only a metrics endpoint; it does not refresh the page. No npm, Python package, React project, production source, or persistent project-side dependency was created.
+
+The first `py_compile` failed with `SyntaxError: bytes can only contain ASCII literal characters` because the initial HTML bytes literal contained a Unicode ellipsis. Changed the temporary page literal to Unicode text encoded as UTF-8; compilation and HTTP serving then succeeded.
+
+The first FFmpeg relay used its default output frame synchronization and initially reported over 10,000 duplicated frames. The first metrics parser also retained too much boundary overlap and overcounted frames. Those values were invalid and are not used in the final measurements. Corrected the temporary relay to use FFmpeg `-fps_mode passthrough` and retain only the six-byte multipart-marker overlap. The corrected FFmpeg log had no duplicate-frame warnings.
+
+Browser and real Android screen transition:
+
+```sh
+curl --max-time 5 -sS http://127.0.0.1:8765/mark
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell am start -a android.settings.SETTINGS
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell input keyevent 3
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell input swipe 540 5 540 1800 500
+curl --max-time 5 -sS http://127.0.0.1:8765/metrics
+```
+
+Navigated the shared Chrome page to `http://127.0.0.1:8765/`. It visibly displayed the real emulator home screen, then Settings, then the notification shade; the `<img>` stream changed automatically while the browser stayed on the same page. `adb dumpsys activity activities` confirmed Settings was the actual foreground Android activity during the Settings check. The notification-shade screenshot in Chrome matched the real Pixel_7 UI.
+
+Before the 500 ms notification-shade swipe, `/mark` returned frame count 72. Metrics then reported 88 frames at t+0.5 s, 99 at t+1 s, 105 at t+2 s, and 105 at t+3 s. This is approximately **20–25 forwarded frames/s while the screen was changing** (33 multipart frames over roughly 1.5 seconds), with no new frames once the display became static. The overall average across the largely static 89-second sample was 114/89.17 = 1.28 frames/s; that low overall figure reflects scrcpy's change-driven output and long idle time, not a fixed-rate screenshot poll.
+
+The relay's first frame after the action marker arrived at **233.9 ms**. The browser visibly rendered the frame; exact browser compositor/display timing was not instrumented, so 0.23 s is a measured first-frame delivery time and only an approximate lower bound for visible latency. A process sample while static showed the Python relay at 0.0% CPU and 0.2% memory; no CPU sample under sustained motion or total emulator/FFmpeg load was taken.
+
+### Outcome, Limitations, and Cleanup
+
+**SUCCESS for the screen-only criterion.** The capture is real Pixel_7 content. Capture method: scrcpy device-side H.264 screen capture. Transport: scrcpy records to a local Matroska FIFO → FFmpeg converts to multipart MJPEG → minimal Python 3.11 HTTP server → Chrome `<img>`. No Google RTC RPC or mock/simulated screen was used.
+
+The first ADB screenshot route is unsuitable for convincing real-time updates at ~1.4 FPS and ~700 ms median capture cost. The scrcpy/FFmpeg/MJPEG local route achieved about 20–25 FPS during a UI transition and around 234 ms to first frame delivery. It is a credible local screen-stream foundation but is **not yet approved as the assignment architecture**: browser-to-Android input was not tested, and behavior under sustained animation, remote transport, production lifecycle/reconnects, and deployment was not tested. Browser input was deliberately not tested; the only UI-changing commands were issued through ADB.
+
+No Google RTC experiment was retried. No production frontend/backend, authentication, database, deployment, React app, mock UI, or architecture/documentation change was made. The temporary relay, screenshot, and test logs were located under `/tmp/healthtick-fallback-20261008/`, outside the repository. The relay and scrcpy/FFmpeg child processes stopped; the experiment emulator process exited and ADB subsequently listed no devices; ports 8765, 5554, and 5555 had no listeners.
+
+Final Git checks: `git status --short --branch` showed only `M PROCESS_LOG.md`; `git diff --check` passed. No commit was created. The next decision is whether to authorize a separate, minimal experiment to validate browser-to-Android input using this transport before selecting it as a foundation; no final architecture selection was made.
+
+### Post-Experiment Cleanup
+
+After recording the entry, removed the named temporary Python source, screenshot, logs, Matroska FIFO, and Python bytecode cache from `/tmp/healthtick-fallback-20261008/`; the temporary directory is now absent. No project runtime or generated artifact remains.
+
+---
+
+## Entry 012 — Browser Tap Through Python and ADB
+
+### Time
+
+2026-10-08 12:43 IST
+
+### User Prompt (verbatim)
+
+```text
+We now have a successful real Android → browser video experiment.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+PREVIOUS EXPERIMENT RESULT:
+
+Pixel_7 Android Emulator
+→ scrcpy device-side H.264 capture
+→ Matroska FIFO
+→ FFmpeg multipart MJPEG
+→ Python 3.11 HTTP
+→ Chrome <img>
+
+Result:
+- REAL Android frame appeared in browser: YES
+- Browser updated without refresh: YES
+- Approximately 20–25 FPS during screen transitions
+- Approximately 234 ms first-frame delivery
+- PROCESS_LOG.md was updated
+- No project files changed except PROCESS_LOG.md
+- No commit was made
+
+This experiment is successful.
+
+IMPORTANT:
+
+Do NOT redesign the video transport yet.
+
+Do NOT replace scrcpy.
+
+Do NOT return to Google Emulator WebRTC.
+
+Do NOT implement deployment.
+
+Do NOT implement authentication.
+
+Do NOT implement database.
+
+Do NOT implement bonuses.
+
+Do NOT build a polished UI.
+
+Our only goal now is to prove:
+
+BROWSER → BACKEND → ANDROID EMULATOR
+
+using the same real Pixel_7 emulator and the existing screen-streaming
+experiment.
+
+==================================================
+EXPERIMENT GOAL
+==================================================
+
+Add ONE browser-originated interaction to the existing experiment.
+
+The preferred first interaction is:
+
+BROWSER CLICK
+      ↓
+Python backend
+      ↓
+ADB input command
+      ↓
+Pixel_7 Android Emulator
+      ↓
+screen changes
+      ↓
+existing browser video stream updates
+
+Use a simple visible Android target so success is unambiguous.
+
+For example, clicking a coordinate that opens an Android UI element or
+changes the current screen.
+
+Do NOT rely on the user clicking an arbitrary location without explaining
+what should happen.
+
+==================================================
+FIRST TEST — TAP
+==================================================
+
+Implement the minimum possible browser interaction:
+
+1. Browser displays the existing REAL Android screen.
+
+2. User clicks/taps somewhere on the displayed Android screen.
+
+3. Browser sends the click coordinates to the Python backend.
+
+4. Backend converts browser/display coordinates into Android screen
+   coordinates.
+
+5. Backend sends the corresponding input event to the Pixel_7 emulator.
+
+6. Android responds.
+
+7. Existing video stream reflects the change in the browser.
+
+The Android screen must be REAL.
+
+Do not simulate the response in JavaScript.
+
+Do not change the browser image artificially.
+
+==================================================
+COORDINATE MAPPING
+==================================================
+
+This is important because the assignment explicitly requires coordinate
+accuracy regardless of browser window size.
+
+Determine the actual Android frame dimensions.
+
+Determine the displayed browser image dimensions.
+
+Implement the minimum coordinate transformation required:
+
+browser/display coordinates
+        ↓
+normalized coordinates
+        ↓
+Android frame coordinates
+        ↓
+ADB input
+
+Account for aspect ratio and any letterboxing/padding.
+
+Do NOT assume browser pixels equal Android pixels.
+
+Document the transformation.
+
+==================================================
+TESTING
+==================================================
+
+Test at least:
+
+TEST 1:
+Display the Android screen at its normal browser size.
+Click a known Android target.
+Verify Android responds.
+
+TEST 2:
+Resize the browser window significantly.
+Click the same logical Android target.
+Verify Android responds at the correct location.
+
+TEST 3:
+Change the browser display size again.
+Repeat the interaction.
+
+The purpose of TEST 2 and TEST 3 is to verify coordinate mapping rather
+than just proving that one hardcoded coordinate works.
+
+==================================================
+INPUT METHOD
+==================================================
+
+Prefer a simple, reliable input method.
+
+ADB is acceptable for this experiment.
+
+Investigate the correct ADB input command for touch/tap events and use
+the real Pixel_7 device.
+
+Do not implement a custom Android application.
+
+Do not install an input helper app on the emulator.
+
+Do not use fake events.
+
+If ADB input works reliably, keep it simple.
+
+==================================================
+LATENCY
+==================================================
+
+For the tap experiment, estimate:
+
+browser click
+→ backend receives event
+→ Android responds
+→ changed frame becomes visible in browser
+
+Do not claim laboratory-grade latency.
+
+If exact end-to-end timing is difficult, report the measurement method and
+limitations honestly.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+If the browser sends invalid coordinates:
+
+- backend must reject them safely.
+
+If the emulator is disconnected:
+
+- backend must return a clear error.
+
+Do not over-engineer this.
+
+==================================================
+ARCHITECTURE CHECK
+==================================================
+
+At the end, determine whether this architecture is now sufficient as the
+basis for the assignment:
+
+Video:
+Android Emulator
+→ scrcpy
+→ FFmpeg
+→ MJPEG
+→ Python
+→ Browser
+
+Input:
+Browser
+→ Python
+→ ADB
+→ Android Emulator
+
+Do NOT implement swipe, scroll, keyboard, deployment, or bonuses yet.
+
+We first need one reliable tap.
+
+==================================================
+PROCESS_LOG REQUIREMENT
+==================================================
+
+After the experiment, append a new entry to PROCESS_LOG.md according to
+AGENTS.md.
+
+Include:
+
+- time
+- my exact prompt above verbatim
+- investigation performed
+- commands used
+- files changed
+- dependencies added
+- successful results
+- errors/failures
+- coordinate mapping approach
+- test results
+- latency observations
+- limitations
+- conclusion
+- recommended next step
+
+NEVER rewrite or delete previous PROCESS_LOG entries.
+
+==================================================
+GIT SAFETY
+==================================================
+
+Do not commit automatically.
+
+Before finishing:
+
+git status
+git diff --check
+
+Report exactly which project files changed.
+
+==================================================
+FINAL REPORT
+==================================================
+
+End with exactly this structure:
+
+RESULT: SUCCESS / PARTIAL / BLOCKED
+
+Real Android video:
+YES / NO
+
+Browser → backend input:
+YES / NO
+
+Backend → Android input:
+YES / NO
+
+Android visibly responded:
+YES / NO
+
+Coordinate mapping:
+WORKING / PARTIAL / FAILED
+
+Resize test:
+PASSED / FAILED
+
+Approximate tap latency:
+
+Main limitation:
+
+Is this architecture suitable as the foundation for the final assignment:
+YES / NO / NEEDS ANOTHER EXPERIMENT
+
+Recommended next step:
+
+Then STOP.
+
+Do not implement additional features automatically.
+```
+
+### Investigation and Setup
+
+- Re-read `AGENTS.md` and `PROCESS_LOG.md` before experiment commands.
+- Verified Emulator 37.2.12.0, `Pixel_7` AVD, SDK ADB 36.0.0, Python 3.11.16, scrcpy 5.0, and FFmpeg 9.0.2. Reused the installed tools from the prior experiment; no dependencies were installed or upgraded in this step.
+- Reused the actual Android 34 arm64 `Pixel_7`, booted to `sys.boot_completed=1`, with physical Android size 1080x2400 and density 420.
+- Consulted Android ADB command documentation https://developer.android.com/tools/adb#shellcommands and scrcpy control documentation https://github.com/Genymobile/scrcpy/blob/master/doc/control.md. Used Android's shell `input tap` for the browser-triggered tap.
+- Created one temporary Python 3.11 server at `/tmp/healthtick-tap-experiment/server.py` (outside the project). It re-created the existing scrcpy → Matroska FIFO → FFmpeg MJPEG stream and added a minimal page and `POST /tap`. It has no third-party Python dependencies and binds only to `127.0.0.1`.
+- The browser derives actual visible-content bounds for `object-fit: contain`: `scale=min(elementBoxWidth/frameWidth, elementBoxHeight/frameHeight)`, then centers the content within the image element, removes letterbox offsets, and normalizes the pointer position. The backend validates finite normalized coordinates in `[0,1)`, checks the captured-frame aspect ratio against the live Android display, reads active dimensions with `adb shell wm size`, then maps `x=floor(nx*androidWidth)` and `y=floor(ny*androidHeight)` and runs `adb -s <serial> shell input tap <x> <y>`. Coordinates are bounded to the display.
+- Device health/tap requests return HTTP 503 with a JSON error when there is no connected emulator. Invalid normalized coordinates return HTTP 400 without sending an ADB input command.
+
+### Commands Executed
+
+Version, boot, and display verification:
+
+```sh
+"$HOME/Library/Android/sdk/emulator/emulator" -version
+"$HOME/Library/Android/sdk/emulator/emulator" -list-avds
+"$HOME/Library/Android/sdk/platform-tools/adb" version
+PATH="/opt/homebrew/bin:$HOME/Library/Android/sdk/platform-tools:$PATH" scrcpy --version
+ffmpeg -version
+python3.11 --version
+"$HOME/Library/Android/sdk/emulator/emulator" -avd Pixel_7
+"$HOME/Library/Android/sdk/platform-tools/adb" wait-for-device
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell getprop sys.boot_completed
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell wm size
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell wm density
+"$HOME/Library/Android/sdk/platform-tools/adb" -e shell am start -a android.settings.SETTINGS
+```
+
+Observed boot completion, `emulator-5554` in device state, and display size 1080x2400.
+
+Temporary relay:
+
+```sh
+mkdir -p /tmp/healthtick-tap-experiment
+PYTHONDONTWRITEBYTECODE=1 python3.11 /tmp/healthtick-tap-experiment/server.py
+curl --max-time 5 -sS http://127.0.0.1:8765/health
+curl --max-time 5 -sS -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:8765/
+```
+
+The health endpoint reported `{"device":"emulator-5554","android_width":1080,"android_height":2400}`. Initial scrcpy MJPEG display was blank while the emulator's restored UI was static; a real ADB-triggered screen transition (notification shade swipe, then restored Settings) caused scrcpy frames to flow. After that, the browser showed the live real screen. This is an observed stream-start limitation for a completely static screen at this test startup, not evidence of a fake frame.
+
+### Three Browser Tap Tests
+
+Target was the real Android Settings main-page row **“Network & internet”**. On each test, a browser click at the same normalized content location approximately `(0.5, 0.362)` was converted and delivered through the backend. After each successful click, `adb dumpsys activity activities` reported the actual Android foreground activity `com.android.settings/.SubSettings`; the live browser stream displayed the Network & internet settings page.
+
+| Test | Browser viewport | Actual frame | Displayed content bounds | Normalized target | ADB tap coordinates | Result |
+|---|---:|---:|---:|---:|---:|---|
+| 1 — normal | 582×789 | 486×1080 | 248.53×552.30 CSS px within 550×552.30 image box | (0.500000, 0.362124) | (540, 869) | Opened Network & internet |
+| 2 — resized | 1280×900 | 486×1080 | 340.20×756 CSS px within 970×756 image box | (0.500000, 0.361111) | (540, 866) | Opened Network & internet |
+| 3 — resized again | 900×600 | 486×1080 | 226.80×504 CSS px within 590×504 image box | (0.500000, 0.361111) | (540, 866) | Opened Network & internet |
+
+Small y-coordinate variation (3 Android pixels between the normal-size test and resized tests) comes from browser pointer coordinate rounding; all three selected the same Settings row and opened the same page. The natural video frame is 486x1080, while Android's ADB display is 1080x2400; their aspect ratios match and are scaled independently. Thus the test did not equate browser CSS pixels, encoded frame pixels, and Android physical pixels.
+
+Latency observations (not lab-grade):
+
+- First test: browser click until UI metrics observed a forwarded changed frame, about **695 ms**; server-measured first frame after tap marker, **434 ms**.
+- Second test: about **515 ms** click-to-frame observation; backend marker to frame, **327 ms**.
+- Third test: about **398 ms** click-to-frame observation; backend marker to frame, **277 ms**.
+- These are approximate delivery/observation timings, including browser polling interval and local process scheduling; the browser compositor's exact physical display time was not instrumented. A reasonable observed range is **~0.4–0.7 seconds** from browser click until the frontend detected a new streamed frame.
+
+### Error Handling, Failures, and Dead Ends
+
+- Initial browser-page sizing let the portrait image's intrinsic height overflow the viewport container; coordinate tests would have been invalid. Fixed the temporary page to use a positioned image constrained to its viewport stage and explicit `object-fit: contain` content-bound mapping. Confirmed no page scroll and measured the final stage/frame/content bounds for each test.
+- On starting a fresh scrcpy stream while Android was static, the `<img>` initially remained blank and the multipart output counter stayed at zero until a real display update occurred. ADB-driven swipe/back/settings transitions generated actual frames. The subsequent three browser-originated tap transitions all streamed normally. This initial-frame behavior should be addressed/validated in a later reliability test.
+- Invalid-input probe:
+
+```sh
+fetch('/tap', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nx:1,ny:0.5,frameWidth:486,frameHeight:1080})})
+```
+
+Observed HTTP 400: `{"error":"Normalized tap coordinates must be finite values in [0, 1)"}`. No emulator input was issued for invalid coordinates.
+- Emulator-disconnect probe: stopped the exact QEMU PID for this experiment, waited for ADB to list no devices, restarted the temporary API without launching an emulator, and POSTed a syntactically valid tap. Observed HTTP 503: `{"error":"No connected Android Emulator is available"}`. An initial POST attempted during emulator shutdown timed out during the transition; the stable disconnected-state retry returned the expected 503.
+- No custom Android app, helper app, fake UI, non-Google RTC path, production system, or extra Python package was used.
+
+### Result, Files, and Next Decision
+
+The end-to-end tap chain succeeded: **browser click → Python HTTP backend → ADB `input tap` → real Pixel_7 Settings navigation → scrcpy/FFmpeg MJPEG frame automatically delivered back to the browser**. Resize tests passed at three significantly different viewport sizes. The video method remained unchanged.
+
+This validates that the video-plus-input approach is a technically plausible assignment foundation for a local emulator experiment. It is **not yet a complete assignment architecture**: only taps are tested; swipes, scrolling, keyboard/text input, repeatability under continuous activity, production UI/API hardening, server deployment, and remote transport remain untested. The initial static-screen first-frame observation also needs a deliberate reliability check.
+
+Files changed in the project: only `PROCESS_LOG.md` (this append-only entry). Temporary script, screenshots, logs, Matroska FIFO, and bytecode were under `/tmp/healthtick-tap-experiment/`, not project source. `scrcpy` 5.0 and dependencies were already installed by the preceding experiment; no dependency was added in this experiment. No README or architecture claims were edited.
+
+Stopped the temporary Python server and exact experiment emulator process. ADB lists no device; listeners and capture processes are stopped. Temporary experiment files are being removed. No commit was made. The next user decision is whether to authorize proceeding to the next scoped milestone (for example swipe/scroll) using this validated local transport; no additional feature is started automatically.
+
+### Final Cleanup Verification
+
+Removed the temporary experiment directory and its server source, screenshots, logs, and Python bytecode. Confirmed no ADB device, listeners on ports 8765/5554/5555, emulator process, scrcpy process, FFmpeg capture process, or Python tap server remains. `git status --short --branch` shows only `M PROCESS_LOG.md`; `git diff --check` passed. No commit was created.
+
+## Entry 013 — Local Core Implementation: Video, Gesture, Keyboard, and Setup
+
+### Time
+
+2026-10-08T13:30:25+05:30 (local time observed during final validation; implementation and tests continued after this timestamp).
+
+### User Prompt (verbatim)
+
+```text
+We have now validated the core architecture successfully.
+
+Read AGENTS.md and PROCESS_LOG.md first.
+
+IMPORTANT: We are now in IMPLEMENTATION MODE.
+
+We need to finish the assignment quickly.
+
+Do NOT start another architecture experiment.
+Do NOT return to Google Emulator WebRTC.
+Do NOT redesign the streaming architecture.
+Do NOT build authentication.
+Do NOT build a database.
+Do NOT add optional bonus features yet.
+Do NOT spend time on visual polish.
+
+The validated architecture is:
+
+Android Emulator
+    ↓
+scrcpy device-side H.264
+    ↓
+FFmpeg
+    ↓
+MJPEG
+    ↓
+Python backend
+    ↓
+Browser
+
+Input:
+
+Browser
+    ↓
+Python backend
+    ↓
+ADB
+    ↓
+Android Emulator
+
+Validated successfully:
+- REAL Android video in browser
+- Browser auto-updates
+- Browser → backend input
+- Backend → Android input
+- Android visibly responds
+- Coordinate mapping works
+- Browser resize test passes
+- Tap latency approximately 0.4–0.7 seconds
+
+The assignment's remaining core requirements are:
+1. Live Android screen
+2. Tap/click
+3. Swipe
+4. Scroll
+5. Keyboard input
+6. Coordinate accuracy regardless of browser size
+7. Latency measurement
+8. Public deployment with Android environment/backend on server
+
+We now need to implement the remaining core requirements and prepare for
+deployment.
+
+==================================================
+PHASE 1 — FIX INITIAL FRAME
+==================================================
+
+Fix the known problem:
+
+When the stream starts while the Android screen is static, the browser
+image can remain blank until Android produces a screen change.
+
+The browser should receive/display an initial frame reliably when a session
+starts.
+
+Do NOT redesign the transport.
+
+Use the existing scrcpy + FFmpeg + MJPEG approach.
+
+Choose the smallest reliable fix.
+
+Verify that:
+
+1. Start Android emulator.
+2. Start backend/stream.
+3. Open browser.
+4. Without touching Android, the browser eventually displays the real
+   Android screen.
+
+Do not proceed until this is working.
+
+==================================================
+PHASE 2 — SWIPE
+==================================================
+
+Add browser swipe support.
+
+The browser must capture:
+
+pointer/touch down
+pointer movement
+pointer/touch up
+
+Send the required gesture information to the Python backend.
+
+Backend must convert browser coordinates to Android coordinates using the
+same coordinate mapping already validated.
+
+Then generate the corresponding real Android touch gesture through ADB.
+
+Do NOT simulate scrolling in the browser.
+
+The Android emulator itself must receive the gesture.
+
+Test:
+
+- swipe upward
+- swipe downward
+- swipe left/right if useful
+
+Use an Android screen where the result is visually obvious, such as
+Settings or another scrollable screen.
+
+Verify the browser video reflects the Android response.
+
+==================================================
+PHASE 3 — SCROLL
+==================================================
+
+Support mouse-wheel scrolling.
+
+Browser:
+
+wheel event
+    ↓
+backend
+    ↓
+Android input
+    ↓
+real Android scroll response
+
+If Android/ADB does not have a clean direct wheel equivalent, translate
+the browser wheel action into an appropriate short vertical swipe.
+
+Keep the implementation simple.
+
+Test scrolling on a real scrollable Android screen.
+
+Do NOT implement fake browser-side scrolling.
+
+==================================================
+PHASE 4 — KEYBOARD INPUT
+==================================================
+
+Add keyboard input.
+
+When the Android emulator has a text field focused:
+
+Browser keyboard event
+    ↓
+backend
+    ↓
+ADB text/key input
+    ↓
+Android text field
+
+Support at least normal text entry.
+
+Handle special keys where reasonably practical, such as:
+
+- Backspace
+- Enter
+- Space
+
+Do not attempt to support every possible keyboard key if that would delay
+completion.
+
+Test using a real Android text input field.
+
+For text containing spaces or special characters, use a safe encoding/
+escaping strategy appropriate for ADB.
+
+Do NOT fake the text in the browser.
+
+==================================================
+PHASE 5 — COORDINATE MAPPING
+==================================================
+
+Keep the existing coordinate mapping implementation that already passed
+the resize test.
+
+Do not replace it unnecessarily.
+
+Make sure it handles:
+
+- browser scaling
+- different displayed image sizes
+- aspect ratio
+- letterboxing/padding if present
+- device resolution
+
+Document the formula clearly in code/comments or documentation.
+
+Test at least two substantially different browser sizes.
+
+==================================================
+PHASE 6 — LATENCY MEASUREMENT
+==================================================
+
+Create a simple repeatable latency measurement procedure.
+
+Measure separately where practical:
+
+1. Browser input → backend received
+2. Backend → ADB input issued
+3. Android screen change → browser-visible changed frame
+
+Then report the approximate end-to-end latency.
+
+Do NOT claim precision that was not actually measured.
+
+Keep the methodology simple enough to explain in the final write-up.
+
+==================================================
+PHASE 7 — RELIABILITY
+==================================================
+
+Add only lightweight reliability handling:
+
+- clear error if emulator is unavailable
+- clear error if ADB command fails
+- browser should reconnect/recover from a temporary stream disconnect
+  where practical
+- cleanly terminate child processes
+- avoid orphaned scrcpy/FFmpeg/backend processes
+
+Do not build a complex session manager.
+
+==================================================
+PHASE 8 — TEST THE COMPLETE LOCAL CORE
+==================================================
+
+Run a complete local test covering:
+
+1. Open browser.
+2. Real Android screen appears automatically.
+3. Tap.
+4. Swipe.
+5. Scroll.
+6. Focus Android text field.
+7. Type text from browser keyboard.
+8. Resize browser.
+9. Repeat tap at resized display.
+10. Verify Android responds correctly.
+
+Record any failures.
+
+==================================================
+IMPORTANT SCOPE RULE
+==================================================
+
+The assignment does NOT require:
+
+- authentication
+- database
+- multi-user system
+- Kubernetes
+- autoscaling
+- CI/CD
+- sophisticated session management
+- production-grade media infrastructure
+- optional clipboard
+- recording/playback
+- restricted app mode
+
+Do not implement these now.
+
+We need the required core functionality first.
+
+==================================================
+PROJECT STRUCTURE
+==================================================
+
+Now that the architecture is validated, move the successful experiment code
+into the actual project structure cleanly.
+
+Use:
+
+frontend/
+backend/
+emulator/
+docs/
+
+Do not leave the final implementation dependent on an arbitrary temporary
+directory outside the project.
+
+The exact implementation structure is your decision, but keep it small
+and understandable.
+
+==================================================
+README
+==================================================
+
+After the local core works, update README.md with the ACTUAL architecture
+and local setup instructions.
+
+Do not document anything that was not actually tested.
+
+Include:
+
+- architecture
+- prerequisites
+- Android Emulator setup
+- Pixel_7 setup
+- scrcpy requirement
+- FFmpeg requirement
+- Python requirement
+- backend startup
+- frontend/browser startup
+- how to test tap
+- how to test swipe
+- how to test scroll
+- how to test keyboard
+- coordinate mapping explanation
+- known limitations
+
+Do not write deployment instructions yet unless the deployment has actually
+been tested.
+
+==================================================
+PROCESS_LOG
+==================================================
+
+Append to PROCESS_LOG.md after meaningful implementation milestones.
+
+Never rewrite or delete previous entries.
+
+Record:
+- exact user prompts
+- actions
+- commands
+- failures
+- fixes
+- decisions
+- test results
+
+The existing successful experiments must remain preserved.
+
+==================================================
+GIT
+==================================================
+
+Do NOT commit automatically.
+
+Before finishing:
+
+git status
+git diff --check
+
+Report all changed files.
+
+==================================================
+STOP CONDITION
+==================================================
+
+Stop after the complete LOCAL CORE works.
+
+Do NOT deploy in this task yet.
+
+At the end report:
+
+RESULT: SUCCESS / PARTIAL / BLOCKED
+
+Initial frame:
+WORKING / FAILED
+
+Tap:
+WORKING / FAILED
+
+Swipe:
+WORKING / FAILED
+
+Scroll:
+WORKING / FAILED
+
+Keyboard:
+WORKING / FAILED
+
+Coordinate mapping:
+WORKING / FAILED
+
+Resize test:
+PASSED / FAILED
+
+Latency measurement:
+COMPLETED / PARTIAL / NOT COMPLETED
+
+Local core:
+READY FOR DEPLOYMENT / NOT READY
+
+Remaining blocker:
+
+Recommended next step:
+
+Do not implement bonuses.
+Do not implement deployment yet.
+```
+
+### Actions Taken
+
+- Continued from the in-progress project implementation after reading the existing agent instructions and log in the earlier implementation context. Kept the chosen scrcpy → FFmpeg → MJPEG video path and ADB input; did not return to Google RTC or begin deployment.
+- Inspected and corrected the project backend input setup: `_input_request` now assigns actual Android `width, height` from `display_size(serial)` before coordinate mapping. Also reject malformed swipe-frame points with an explicit 400 response and constrain resolved static-file paths to the built frontend directory.
+- Kept a real ADB screenshot converted through FFmpeg as the first MJPEG part, followed by the scrcpy/FFmpeg live stream.
+- Added a one-second first-key settle deadline after an Android screen tap. The deadline is honored in the serialized input queue and included in browser-side response timing. This addressed the observed missing first character when text started during Android's field/IME transition.
+- Updated the responsive React input client for tap, pointer swipe, wheel-to-swipe, keyboard text/special keys, and approximate frame-arrival timing; preserved its letterbox-aware normalized coordinate calculation.
+- Updated `.gitignore` for Python bytecode/venv and frontend `node_modules`/`dist`.
+- Replaced the stale planned-WebRTC README with the tested local architecture and setup/use/limitations, added the AVD notes in `emulator/README.md`, and recorded the measurement method/examples in `docs/latency-and-validation.md`.
+- Frontend dependencies in the existing project manifest are React 18.3.1, React DOM 18.3.1, Vite 6.4.4, and `@vitejs/plugin-react` 4.3.4. No dependency was installed during the final validation continuation. Earlier in the implementation sequence, an install attempt from the repository root failed because there is no root `package.json`; its accidental empty root lockfile was removed. Dependencies were then installed under `frontend/`, and Vite was pinned to 6.4.4 after audit advisories. The exact earlier install command is not available in this continuation, so it is not repeated here.
+
+### Commands and Checks Performed
+
+Commands directly observed during this continuation included:
+
+```sh
+python3.11 -m py_compile backend/server.py
+npm --prefix frontend run build
+npm --prefix frontend audit --audit-level=moderate
+curl -sS --max-time 5 http://127.0.0.1:8000/api/health
+curl -sS --max-time 5 http://127.0.0.1:8000/api/metrics
+curl -sS --max-time 5 -X POST http://127.0.0.1:8000/api/input/tap \
+  -H 'Content-Type: application/json' \
+  --data '{"x":1,"y":0.5,"frameWidth":486,"frameHeight":1080}'
+adb -e shell wm size
+adb -e shell am force-stop com.android.settings
+adb -e shell am start -a android.settings.SETTINGS
+adb -e exec-out screencap -p
+adb -e shell uiautomator dump /sdcard/healthtick-ui.xml
+adb -e pull /sdcard/healthtick-ui.xml /tmp/healthtick-ui.xml
+git status --short --untracked-files=all
+git diff --check
+```
+
+`adb` in those commands resolved to `$HOME/Library/Android/sdk/platform-tools/adb`. Additional browser actions were performed in Chrome at `http://127.0.0.1:8000/`; the production build was served by the Python backend on the same origin. Viewports exercised in this continuation included 1024x768 and 640x480.
+
+### Results
+
+- **Initial frame — WORKING:** after restarting the backend and loading the built React frontend on the same origin, a real static Pixel_7 Settings frame appeared without touching Android. The backend's direct MJPEG response contained a complete 117,990-byte JPEG initial part. The production app's `<img>` loaded the real 486x1080 frame. No manually fabricated UI or screen content was used.
+- **Tap — WORKING:** clicking the visible Settings row in Chrome at 1024x768 sent a real ADB tap. Chrome reported a newer frame in about 554 ms; the Android top activity changed to `com.android.settings/.SubSettings`. Repeating the same logical Settings-row tap at 640x480 reported a newer frame in about 796 ms; the direct emulator screen showed the Network & internet page.
+- **Swipe — WORKING:** dragged upward over the scrollable real Settings screen at 1024x768. The frontend reported a changed frame in about 642 ms. SHA-256 of direct ADB screenshots before/after differed (`f7222936…a7964a` vs. `2cb6957f…bd009`).
+- **Scroll — WORKING:** a Chrome wheel action over the same Android screen was translated to an ADB swipe. The frontend reported a changed frame in about 678 ms. ADB screenshot hashes differed (`3f88d0f5…c496c4` vs. `6f668fcd…bd009`).
+- **Keyboard — WORKING after focus settling:** a first attempt that typed too soon showed `ealthtick`, missing its first character. The client was changed to defer the first key until one second after the tap. A subsequent browser typing run begun 400 ms after tap displayed the complete `healthtick` in the actual Android Settings search field; `uiautomator dump` returned `text="healthtick"` for `android:id/search_src_text`. Space, Backspace, and Enter were sent through ADB key events; Enter produced an observed changed frame.
+- **Coordinate mapping / resize — WORKING:** frame dimensions were 486x1080 and Android display dimensions were 1080x2400 (same aspect ratio). The same visible Android target was reached at 1024x768 and 640x480. The calculation uses the CSS image-element bounds, `object-fit: contain` scale, centered letterbox offsets, normalized image coordinates, and Android display dimensions; the backend rejects out-of-range coordinates and aspect-ratio mismatch.
+- **Latency — COMPLETED:** the UI separates browser input-response timing, backend-dispatch-to-ADB timing, ADB command duration, and time until the frontend observes a higher frame sequence. The tested tap/swipe/scroll frame observations were approximately 0.55–0.80 seconds. This includes polling/scheduling and is not physical display-presentation instrumentation. More detailed values and methodology are in `docs/latency-and-validation.md`.
+- Invalid normalized coordinate `x=1` returned HTTP 400 with `{"error": "Normalized coordinates must be finite values in [0, 1)"}`; no ADB input was issued.
+- `python3.11 -m py_compile backend/server.py` passed. `npm --prefix frontend run build` passed after the final keyboard change. `npm --prefix frontend audit --audit-level=moderate` reported zero vulnerabilities.
+
+### Errors, Failures, and Limitations
+
+- A failed tap calculation occurred after an automated browser action scrolled the page to an off-screen control; the resulting image rectangle was above the viewport. Subsequent tests explicitly returned the page to scroll position zero and calculated clicks only when image coordinates were visible. The normalized mapping itself was verified at both final test sizes.
+- The Vite development page did not reliably display the multipart MJPEG stream after a backend restart, while the same-origin production build served by Python loaded it and was tested successfully. The documented/tested startup therefore builds Vite assets and has Python serve them; no claim is made that the Vite dev stream proxy works.
+- During initial keyboard testing, the first character was dropped if input arrived before Android's search field/IME had settled. Added the explicit one-second post-tap first-key deadline and re-tested a 400 ms user start delay; the complete text was confirmed in Android's actual UI tree.
+- Emulator-disconnect recovery was not actively tested against the project backend, though health checks and ADB errors return explicit error responses in the implementation. CPU use and long-duration reliability were not benchmarked. The frontend's stream error handler retries a failed image request, but exhaustive disconnect/reconnect testing remains open.
+- This work did not add authentication, a database, deployment, or optional features. No deployment attempt was made.
+
+### Project Files Changed
+
+`.gitignore`, `README.md`, `PROCESS_LOG.md`, `backend/server.py`, `docs/latency-and-validation.md`, `emulator/README.md`, `frontend/index.html`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js`, `frontend/src/App.jsx`, `frontend/src/main.jsx`, and `frontend/src/style.css`.
+
+### Decision / Next Step
+
+The requested local core is ready to begin a separate deployment task; deployment itself is unimplemented and untested. The next decision is whether to authorize deployment work in a subsequent task. The emulator remains a local prerequisite, and no commit was created.
+
+### Post-Validation Cleanup Supplement
+
+Time: 2026-10-08T13:37:11+05:30.
+
+A diagnostic Python reader timed out while waiting for a 65,536-byte socket read from the long-lived MJPEG response; this was a diagnostic-client buffering issue, not evidence that the MJPEG endpoint lacked a frame. A bounded `curl` probe then received a complete JPEG frame, and Chrome's same-origin production page displayed the emulator. The attempted cleanup included `/tmp/healthtick-stream.jpg`, which had not been created by that timed-out reader; `rm` reported that one path missing. The remaining explicitly named temporary screenshots/dumps and the matching emulator UI dump were removed. No project files other than this append-only log were changed by cleanup. The Vite dev server exited with status 143 after the requested targeted `kill`; the backend handled termination and its scrcpy/FFmpeg children were confirmed absent. The Android Emulator itself was left running for the user. No commit was created.

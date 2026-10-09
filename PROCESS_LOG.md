@@ -4335,3 +4335,318 @@ The exact user prompt for this implementation is preserved verbatim in Entry 024
 ### User Decision / Next Step
 
 Run the VM deployment commands from the Mac terminal where `~/.ssh/healthtick_vm` is usable, or make the unlocked SSH identity available to this agent environment and continue with live deployment/browser verification. Do not describe the cloud deployment as updated until multiple complete JPEG frames and browser interactions are actually observed.
+
+## Entry 029 — Final Assignment Deliverables Documentation Audit
+
+### Time
+
+2026-10-09 17:36 IST
+
+### Exact User Prompt
+
+```text
+We have completed and manually verified the public deployment of HealthTick Android Browser. Do a final assignment-deliverables audit based on the original HealthTick Developer Assignment PDF and the current repository.
+
+Verified deployment:
+
+- Public URL: [http://34.14.173.43:8000/](http://34.14.173.43:8000/)
+- Hosted on Google Cloud VM.
+- Real Android emulator screen is streamed using ADB screenshot polling, Pillow JPEG conversion, and multipart MJPEG.
+- Backend health reported emulator-5554, 720×1600, video_ready=true, video_error=null.
+- An 8-second stream test yielded 11 valid JPEG frames.
+- On the public page, live screen, tap, swipe, scroll, keyboard, resize, and reconnect have been manually tested successfully.
+- One UI sample showed approximately 692 ms changed-frame time. This is one observation, not a benchmark or average.
+- The public site uses HTTP and has no authentication.
+Tasks:
+
+1. Audit README.md against the assignment. Correct outdated deployment status, add the public URL, hosting details, actual verified tests, and known limitations. Keep local setup instructions.
+2. Create a concise 1–2 page architecture write-up under docs/ explaining the video path, input path, coordinate mapping, latency measurement, alternatives considered and rejected, and current isolation/restriction limitations. Do not claim isolation or restricted access is implemented.
+3. Ensure the README or write-up includes “What went wrong” and “With more time” sections, covering abandoned RTC/gRPC and scrcpy/FFmpeg approaches, the screenshot-polling trade-offs, scaling beyond a few users, and major security risks.
+4. Review docs/latency-and-validation.md and report only measured results. Record 692 ms as a single observed sample. Clearly separate verified behavior from untested performance or stability claims.
+5. Review PROCESS_LOG.md. Append a new dated entry; do not delete, rewrite, summarize away, or clean up earlier entries. Record this exact prompt verbatim, actions taken, errors, results, and next user decision.
+6. Include a section for the human's own decisions and one example where AI was wrong or unhelpful, clearly marked for human review if the evidence is insufficient. Do not invent personal decisions or events.
+7. Do not add Netlify, change application code, add features, modify the VM, restart services, or change the working deployment.
+8. Run relevant checks, including git diff --check. Show me the changed files, the diff summary, and test results.
+9. Do not commit or push. Wait for my review.
+Start by listing the assignment requirements and mapping each one to an existing file or a gap. Then make the documentation changes.
+```
+
+### What AI Did
+
+- Read `AGENTS.md` and the existing `PROCESS_LOG.md` before proceeding.
+- Located the original `HealthTick Developer Assignment.pdf` in Downloads. `pdftotext` was unavailable (`command not found`); extracted the PDF text locally using macOS PDFKit instead. No PDF content was sent to an external service.
+- Listed the assignment deliverables and mapped them to the repository/gaps before changing documentation:
+  1. Public repository/backend/frontend: repository present.
+  2. Public deployment link and trying instructions: link exists; README previously lacked current deployment details.
+  3. Continuous 3–5 minute demo video: not present in the repository; remains a human deliverable.
+  4. README setup/test steps: README exists and local setup retained; deployment status was stale.
+  5. 1–2 page architecture write-up: missing.
+  6–7. “What went wrong” and “With more time”: no explicit README sections.
+  8. AI process record: `PROCESS_LOG.md` exists and is linked.
+  9. Candidate's own reflection on independent decisions and an AI mistake: cannot be authored truthfully by AI; added author-completion prompts and a factual AI mistake candidate marked for human review.
+  Core criteria map to backend/frontend implementation, local setup, public link, controls/coordinate mapping, and latency documentation. Bonus isolation and restricted app access are not implemented and are documented as such.
+- Updated README with the public GitHub repository, HTTP deployment URL, GCP VM/device details, owner-reported successful public stream and interactions, the single 692 ms sample, lack of authentication, setup/instructions, limitations, the required named reflection sections, demo-video gap, and missing actual time-spent figure.
+- Added a concise architecture write-up at `docs/architecture.md` describing video/input paths, resize-independent coordinate mapping, timing, alternatives and failures, actual isolation/restriction status, security risks, scaling direction, and a human-review-marked AI mistake candidate.
+- Rewrote `docs/latency-and-validation.md` to distinguish project-owner-reported manual verification from the measured 8-second/11-frame observation and one 692 ms UI sample; explicitly states no benchmark, load test, or soak result was reported.
+- Did not change application source, frontend, dependencies, VM, or deployment; did not add Netlify. Did not commit or push.
+
+### Errors / Failures
+
+- `pdftotext` was not installed. Used the built-in macOS PDFKit through a local Swift command to extract the PDF. This alternative succeeded.
+- No test suite was run because the changes are documentation-only and no documentation test runner was found. `git diff --check` was run and passed.
+- No independent public-site checks were performed; deployment results in the README/latency notes are attributed to the project owner's supplied verification.
+
+### Results
+
+- Original PDF requirements were read directly. It specifies the public repository/link, demo video, README, 1–2 page architecture write-up, “What went wrong”, “With more time”, AI process log, and human-authored reflection; core behavior includes live Android display, browser controls and accurate resize-independent input, measured response time, reproducible single-machine setup, and public deployment.
+- Demo video and actual time spent remain explicit human submission gaps. The reflection placeholders/candidate must be reviewed and completed by the human in their own words.
+- No personal decision or subjective reaction was invented. The candidate AI-error example is grounded in the process history: the earlier Matroska probing change did not establish working production frames, and subsequent reported production behavior continued to fail.
+
+### Files Changed
+
+- `README.md`
+- `docs/architecture.md` (new)
+- `docs/latency-and-validation.md`
+- `PROCESS_LOG.md` (append-only)
+
+### User Decision / Next Step
+
+Review the documentation diff, write the candidate's own reflection and actual time-spent figure, and add the required continuous 3–5 minute demo video before final submission. No commit or push was made; the changes await user review.
+
+## Entry 030 — Documentation Whitespace Validation Follow-Up
+
+### Time
+
+2026-10-09 17:40 IST
+
+### Exact User Prompt
+
+This is a validation follow-up to Entry 029; the full exact user prompt is preserved verbatim there and remains applicable without alteration.
+
+### What AI Did
+
+- Ran `git diff --check` after completing the documentation diff. It initially reported two trailing spaces on README emphasis lines.
+- Replaced those trailing-space line breaks with blank-line separators.
+- No application code or deployment was changed.
+
+### Errors / Failures
+
+- The first final `git diff --check` invocation failed on those two README trailing whitespace lines. They were corrected. Final check result is recorded after rerunning below.
+
+### User Decision / Next Step
+
+The documentation changes remain uncommitted and await user review as requested in Entry 029.
+
+## Entry 032 — Follow-up Documentation Review
+
+### Time
+
+2026-10-09 18:00 IST
+
+### Exact User Prompt
+
+```text
+Read `AGENTS.md` and `PROCESS_LOG.md` first. Continue the HealthTick Android Browser assignment documentation review.
+
+The public deployment is working and has been manually verified. Do not change the application code, frontend, VM, running services, deployment, or add Netlify.
+
+Review the current uncommitted documentation changes in:
+
+- `README.md`
+- `docs/architecture.md`
+- `docs/latency-and-validation.md`
+- `PROCESS_LOG.md`
+Tasks:
+
+1. Verify the README accurately describes the current deployed ADB screenshot-polling implementation, public URL `http://34.14.173.43:8000/`, local setup, verified browser interactions, and known security limitations.
+2. Ensure latency documentation describes 11 valid JPEG frames in 8 seconds and the approximately 692 ms changed-frame observation as limited measurements, not benchmarks.
+3. Verify `docs/architecture.md` covers the video path, input path, coordinate mapping, alternatives, failures, security, scaling, and the fact that isolation and restricted app access are not implemented.
+4. Verify the previous process-log entries remain intact and new entries are appended. Do not rewrite or remove historical entries.
+5. Check that the README and architecture document identify the required 3–5 minute continuous demo video, actual time-spent figure, and human-authored reflection as outstanding until I complete them.
+6. Run `git diff --check` and inspect the complete diff. Do not commit or push.
+Report any specific corrections needed before making them. Do not invent personal experiences or write my personal reflection for me.
+```
+
+### What AI Did
+
+- Read `AGENTS.md` and the latest `PROCESS_LOG.md` entries before reviewing the documentation.
+- Compared the README and architecture claims with the current `backend/server.py` capture path and frontend coordinate/latency implementation.
+- Inspected the complete tracked diff in bounded sections, the full architecture write-up, and the relevant README and latency-documentation sections.
+- Ran `git diff --check`; it passed. The diff confirms earlier process-log entries remain unchanged and the recent entries are appended after Entry 028.
+- Found one documentation gap: `README.md` explicitly marks the continuous 3–5 minute demo, actual time-spent figure, and human-authored reflection outstanding, but `docs/architecture.md` does not mention those deliverables.
+- Made no documentation corrections in this review, pending the requested report. The mandatory process-log entry is appended here.
+
+### Errors / Failures
+
+- `git diff` exceeded the command output limit and was saved to a temporary file; inspected the full diff by reading its sections. One attempted `view` request used an invalid negative line number and failed; it was not needed for the review.
+- No application tests/build were run because this was a documentation-only review. No live deployment checks were performed.
+
+### User Decision / Next Step
+
+Report the architecture-document gap before making any correction, as requested. Await the user's review/authorization before changing the architecture document. Do not commit or push.
+
+## Entry 031 — Final Deliverables Audit Validation
+
+### Time
+
+2026-10-09 17:42 IST
+
+### Exact User Prompt
+
+The exact prompt audited in this follow-up is preserved verbatim in Entry 029.
+
+### What AI Did
+
+- Re-ran `git diff --check` after the README formatting fix; passed.
+- Confirmed the new architecture write-up is approximately 1,014 words and includes video/input, coordinate mapping, latency, alternatives, current isolation/restriction status, security, “What went wrong”, and “With more time”.
+- Confirmed the worktree changes are documentation-only: `README.md`, `docs/architecture.md` (new), `docs/latency-and-validation.md`, and append-only `PROCESS_LOG.md`.
+- Confirmed no application tests were run because no code changed and no documentation test runner is configured.
+
+### Errors / Failures
+
+- The initial whitespace check failure and its correction are preserved in Entry 030. The final whitespace check passed.
+
+### User Decision / Next Step
+
+Review the uncommitted four-file documentation diff. Complete the explicitly marked candidate-authored reflection/time-spent sections and provide the missing demo recording separately before submission.
+
+## Entry 033 — Append-Only Log Ordering Correction
+
+### Time
+
+2026-10-09 18:01 IST
+
+### Exact User Prompt
+
+```text
+Read `AGENTS.md` and `PROCESS_LOG.md` first. Continue the HealthTick Android Browser assignment documentation review.
+
+The public deployment is working and has been manually verified. Do not change the application code, frontend, VM, running services, deployment, or add Netlify.
+
+Review the current uncommitted documentation changes in:
+
+- `README.md`
+- `docs/architecture.md`
+- `docs/latency-and-validation.md`
+- `PROCESS_LOG.md`
+Tasks:
+
+1. Verify the README accurately describes the current deployed ADB screenshot-polling implementation, public URL `http://34.14.173.43:8000/`, local setup, verified browser interactions, and known security limitations.
+2. Ensure latency documentation describes 11 valid JPEG frames in 8 seconds and the approximately 692 ms changed-frame observation as limited measurements, not benchmarks.
+3. Verify `docs/architecture.md` covers the video path, input path, coordinate mapping, alternatives, failures, security, scaling, and the fact that isolation and restricted app access are not implemented.
+4. Verify the previous process-log entries remain intact and new entries are appended. Do not rewrite or remove historical entries.
+5. Check that the README and architecture document identify the required 3–5 minute continuous demo video, actual time-spent figure, and human-authored reflection as outstanding until I complete them.
+6. Run `git diff --check` and inspect the complete diff. Do not commit or push.
+Report any specific corrections needed before making them. Do not invent personal experiences or write my personal reflection for me.
+```
+
+### What AI Did
+
+- Appended Entry 032 but discovered afterward that the patch context matched a repeated sentence in Entry 030, placing Entry 032 before Entry 031 rather than at the file end.
+- Preserved Entry 032 and all earlier log content without rewriting or deleting anything. Appended this correction at the end as the latest record, including the exact current user prompt.
+- The review found one pending documentation correction: the architecture document does not identify the demo video, actual time-spent figure, and human reflection as outstanding, although the README does.
+- Rechecked the documentation review results: `git diff --check` passed. No application/deployment changes, commit, or push occurred.
+
+### Errors / Failures
+
+- Entry 032 was initially inserted out of chronological order due to an ambiguous patch context. It remains unmodified in place to honor the append-only history; this final entry transparently records the mistake. No other prior entries were edited.
+
+### User Decision / Next Step
+
+The specific correction to report is to add an outstanding-deliverables note to `docs/architecture.md`. Do not make that change until the user has reviewed/authorized it.
+
+## Entry 034 — Architecture Submission Deliverables Note
+
+### Time
+
+2026-10-09 18:02 IST
+
+### Exact User Prompt
+
+```text
+Make one narrowly scoped documentation change to `docs/architecture.md`.
+
+Add a short “Submission deliverables” section near the end stating that these items remain for the author to complete:
+
+- Record and include the required continuous 3–5 minute demo of the deployed application.
+- Add the actual time spent on the assignment.
+- Complete the human-authored reflection describing personal decisions and one instance where AI was wrong or unhelpful.
+Do not invent the author's time spent or write their personal reflection. Do not modify README.md, application code, other documentation, the VM, or deployment. Do not rewrite or reorder PROCESS_LOG.md. Append one new process-log entry at the actual end, preserving all existing entries, recording this exact prompt and the change made. Run `git diff --check`, show the changed-file summary, and do not commit or push.
+```
+
+### What AI Did
+
+- Added a concise “Submission deliverables” section at the end of `docs/architecture.md` listing the demo video, actual time spent, and candidate-authored reflection as author actions still required.
+- Appended this entry at the actual end of `PROCESS_LOG.md`, preserving all pre-existing entries and their order.
+- Did not edit `README.md`, application code, other documentation, the VM, or deployment. Did not commit or push.
+
+### Errors / Failures
+
+- None observed.
+
+### User Decision / Next Step
+
+The author must complete the three submission deliverables listed in `docs/architecture.md`. Changes remain uncommitted for user review.
+
+## Supplemental Note — Entries 030–032 Prompt Provenance
+
+Reviewing the conversation context available for this follow-up, I cannot
+reliably recover distinct verbatim user prompts associated with Entries 030
+and 031. Entry 030's “validation follow-up” sentence is an assistant-written
+description, not verifiable evidence of the exact user prompt; Entry 031
+refers back to Entry 029 rather than recording a separate prompt. Their
+missing prompt text is therefore unavailable and is not reconstructed here.
+Entry 032 is positioned before Entry 031, although its timestamp is later.
+That ordering anomaly is preserved rather than moving or rewriting either
+entry. Entries 030–034 and all earlier history remain as they were.
+
+## Entry 035 — Documentation Latency Semantics and Prompt Provenance
+
+### Time
+
+2026-10-09 18:10 IST
+
+### Exact User Prompt
+
+```text
+Fix the two issues identified in the final review of the HealthTick assignment documentation.
+
+**1. Correct latency wording**
+
+- Inspect the actual frontend and backend implementation.
+- Replace wording such as “observed changed frame” if it implies pixel-level image-change detection.
+- Describe the measurement accurately as the time to observe a later published frame sequence.
+- Keep the 692 ms value explicitly labeled as one owner-reported UI observation, not a benchmark.
+- Update only the relevant documentation wording; do not change application code.
+**2. Preserve and clarify the process log**
+
+- Do not rewrite, delete, or reorder existing `PROCESS_LOG.md` entries.
+- Inspect Entries 029–034 and the available conversation context for the exact prompts associated with Entries 030 and 031.
+- If their exact prompts can be recovered reliably, append a clearly labeled supplemental note at the actual end of the file containing them verbatim and explaining the historical omission. Do not reconstruct or guess missing wording.
+- Record the Entry 032 ordering anomaly transparently in that supplemental note. Do not move the entry.
+- Append one new entry at the actual end documenting this exact prompt and the changes made.
+**Validation**
+
+- Run `git diff --check`.
+- Show `git status --short` and `git diff --stat`.
+- Inspect the relevant diffs and the untracked `docs/architecture.md`.
+- Report any remaining limitation honestly.
+- Do not commit, push, modify application code, or change the VM/deployment.
+Do not modify `README.md` or `docs/architecture.md` unless a specific factual inconsistency is found there.
+```
+
+### What AI Did
+
+- Inspected the frontend sequence polling and backend frame publication. Confirmed that the frontend considers a later `frame_sequence` evidence of an update; it does not perform pixel-level image comparison.
+- Updated only the relevant latency wording in `README.md`, `docs/architecture.md`, and `docs/latency-and-validation.md`. The 692 ms value remains explicitly a single project-owner-reported UI observation, not a benchmark.
+- Reviewed the context for Entry 030 and 031 prompt provenance. No separate exact user prompts for those entries were reliably available, so this supplemental note records them as unavailable rather than reconstructing them.
+- Recorded that Entry 032 is out of timestamp order relative to Entry 031; left all earlier entries in place and unchanged.
+- Appended this entry at the actual end of the log. No application code, VM, or deployment was changed. No commit or push was made.
+
+### Errors / Failures
+
+- Exact user prompts for Entries 030 and 031 could not be verified from the available conversation context. See the supplemental provenance note above; no guessed text was added.
+
+### User Decision / Next Step
+
+Review the documentation changes. Existing prompt omissions and Entry 032's ordering anomaly remain transparently documented and unaltered.

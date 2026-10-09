@@ -1,25 +1,35 @@
 # HealthTick Android Browser
 
-A minimal implementation of the HealthTick take-home core: view and control a
-real Android Emulator from Chrome. A cloud VM deployment exists, but the
-screenshot-polling revision documented here must be deployed and verified
-there before that deployment is considered current.
+An interactive real Android Emulator streamed to a browser.
 
-## Current status
+**Public deployment:** <http://34.14.173.43:8000/>
 
-The backend captures real Android Emulator screenshots using ADB, converts
-them to JPEG, and publishes the latest frame to browser clients. Verify live
-capture, deployment, and browser interaction in the target environment before
-claiming those behaviors for this revision.
+**Public repository:** <https://github.com/Rajeshwer-Sahani/healthtick-android-browser>
+
+**Hosting:** Google Cloud VM, Debian 13, Android Emulator API 35, ADB device
+`emulator-5554`, logical display 720 × 1600.
+
+As manually verified by the project owner on 2026-10-09, the public page
+displayed the live Android screen and responded to tap, swipe, scroll,
+keyboard input, browser resize, and reconnect. An 8-second stream test
+contained 11 valid JPEG frames. One owner-reported UI sample showed 692 ms
+from action to observation of a later published frame sequence; it is one
+observation, not a benchmark or average. The metric does not check whether
+image pixels changed.
+See [validation and latency notes](./docs/latency-and-validation.md).
+
+The public service uses plain HTTP and has no authentication. Anyone who can
+reach the URL can view and operate the one shared emulator. Do not enter
+personal, confidential, or sensitive information.
 
 ## Architecture
 
 ```text
 Video:
-Pixel_7 Android Emulator
-  -> ADB exec-out screencap -p (250 ms default interval)
+Android Emulator
+  -> ADB exec-out screencap -p (250 ms default polling interval)
   -> Pillow PNG decode / JPEG encode
-  -> shared latest-frame buffer
+  -> shared latest-frame buffer and sequence
   -> Python multipart MJPEG endpoint
   -> React <img> in Chrome
 
@@ -27,32 +37,28 @@ Input:
 Chrome pointer / wheel / keyboard
   -> Python HTTP API
   -> ADB input commands
-  -> Pixel_7 Android Emulator
+  -> Android Emulator
 ```
 
-One background thread is shared by all stream clients. It repeatedly runs
-`adb -s <serial> exec-out screencap -p`, validates and converts each PNG with
-Pillow, then publishes a JPEG with an increasing frame sequence. The target
-interval is configurable with `CAPTURE_INTERVAL_SECONDS` (default `0.25`
-seconds); actual cadence also depends on ADB, image conversion, and host
-scheduling. Frames are captured from the real emulator, not mocked or
-prerecorded.
+One shared backend worker captures real emulator screenshots; the browser
+does not receive mock or prerecorded frames. `CAPTURE_INTERVAL_SECONDS`
+configures the target interval (default `0.25` seconds). Actual cadence
+depends on ADB, conversion, network, and scheduling. Details and rejected
+approaches are in the [architecture write-up](./docs/architecture.md).
 
-## Prerequisites
+## Local prerequisites
 
-The tested local environment was macOS on Apple Silicon with:
-
-- Android Emulator 37.2.12.0 and a bootable `Pixel_7` AVD (Android 34, arm64).
-- Android SDK Platform Tools / ADB 36.0.0.
-- Python 3.11.16.
-- Pillow installed from `backend/requirements.txt`.
-- Node.js 24.13.1 and npm 11.8.0.
+- Python 3.11 (or a compatible Python 3 with venv support).
+- Android SDK Platform Tools / ADB and a bootable Android Emulator AVD.
+- Node.js and npm.
 - Google Chrome.
+- Pillow, installed from `backend/requirements.txt`.
 
-The AVD must be configured in the local Android SDK; generated AVD data is not
-part of this repository. See [emulator setup](./emulator/README.md).
+The previously tested local AVD is `Pixel_7` on Android 34 arm64. Its
+generated runtime data is not stored in this repository. See
+[emulator setup](./emulator/README.md).
 
-Confirm the tools resolve in the shell used to start the backend:
+Check that the tools resolve:
 
 ```sh
 python3.11 --version
@@ -61,42 +67,32 @@ node --version
 npm --version
 ```
 
-If the Android SDK tools are not on `PATH`, add the standard SDK directories
-for the current terminal:
+If the Android SDK tools are not on `PATH`, add the standard macOS SDK paths:
 
 ```sh
 export PATH="$HOME/Library/Android/sdk/platform-tools:$HOME/Library/Android/sdk/emulator:$PATH"
 ```
 
-If `adb` is not on `PATH`, the backend defaults to
-`$HOME/Library/Android/sdk/platform-tools/adb`. Override that path with
-`ADB_PATH` if the SDK is installed elsewhere.
+The backend defaults `ADB_PATH` to
+`$HOME/Library/Android/sdk/platform-tools/adb`. Override `ADB_PATH` for another
+SDK location. Set `ADB_SERIAL` if more than one emulator is attached.
 
 ## Local setup and startup
 
 Use separate terminals.
 
-### 1. Start Pixel_7
-
-Start the existing AVD (use the full SDK path if `emulator` is not on `PATH`):
+### 1. Start the emulator
 
 ```sh
 emulator -avd Pixel_7
-```
-
-Wait for Android to finish booting and confirm the target and display size:
-
-```sh
 adb -e wait-for-device
 adb -e shell getprop sys.boot_completed
 adb -e shell wm size
 ```
 
-The boot property should be `1`. The tested display size was `1080x2400`.
-When more than one emulator is connected, set `ADB_SERIAL` to the desired
-serial (the tested emulator serial was `emulator-5554`).
+Wait for `sys.boot_completed` to report `1`.
 
-### 2. Build the React/Vite frontend
+### 2. Build the frontend
 
 From the repository root:
 
@@ -107,13 +103,10 @@ npm run build
 cd ..
 ```
 
-The build output is ignored by Git and is served by the Python backend. Using
-this same-origin local path avoids relying on the Vite development proxy for
-the long-lived multipart MJPEG response.
+The Python backend serves the production build from the same origin as the
+long-lived MJPEG stream.
 
-### 3. Start the Python backend
-
-From the repository root:
+### 3. Install Pillow and start the backend
 
 ```sh
 python3.11 -m venv backend/.venv
@@ -121,87 +114,125 @@ backend/.venv/bin/python -m pip install -r backend/requirements.txt
 backend/.venv/bin/python backend/server.py
 ```
 
-The backend uses Python's standard library and Pillow. ADB must be executable
-by the backend process. The server binds to `127.0.0.1:8000`. On a deployed
-systemd service, use the same virtual environment for the service executable;
-see the deployment procedure in the validation notes.
+The default server bind is `127.0.0.1:8000`. Set
+`CAPTURE_INTERVAL_SECONDS` to change the target screenshot interval (for
+example, `0.25`). Shorter intervals increase ADB and image-conversion load.
+To stop the backend, press `Ctrl+C`; it signals the capture thread and waits
+for the in-flight ADB screenshot operation to finish within its timeout.
 
-Set `CAPTURE_INTERVAL_SECONDS` to change the target capture cadence (for
-example, `0.25` for 250 ms). Lower intervals increase ADB and image-conversion
-load; screenshot polling is not a substitute for a low-latency encoded-video
-transport.
+### 4. Try the app
 
-### 4. Open Chrome
+Open <http://127.0.0.1:8000/>. No account or credentials are required for the
+public deployment. To exercise the controls:
 
-Visit <http://127.0.0.1:8000/>. The initial real emulator frame should appear
-without touching the device. Keep the emulator and backend running while using
-the browser.
+- **Tap:** click a visible Android control.
+- **Swipe:** drag on the Android image.
+- **Scroll:** use the mouse wheel over the image; wheel motion is translated
+  into an ADB swipe.
+- **Keyboard:** click a text field on Android, focus the screen, then type.
+  The first key may wait up to one second after the last tap for the IME.
+  Backspace, Enter, Space, navigation keys, Home, and Back are handled as
+  Android key events.
+- **Resize:** resize the browser and operate a visible screen target again.
+- **Reconnect:** reload the page or open a fresh tab; the frontend reconnects
+  to the shared stream.
 
-To stop the backend, press `Ctrl+C`; the screenshot worker is signaled to stop
-and the server waits for an in-flight ADB command to finish, bounded by its
-command timeout. The emulator can be stopped separately from its terminal.
-
-## Try the controls
-
-Use a real Android screen such as Settings:
-
-- **Tap:** click a visible Android control or row in the image.
-- **Swipe:** press and drag on the image, then release.
-- **Scroll:** place the pointer over the image and use the mouse wheel. Wheel
-  movement is translated to a short ADB swipe.
-- **Keyboard:** click a text field on Android, keep the browser screen focused,
-  then type. To allow Android's field and keyboard to settle, the first key
-  after a screen tap is sent no earlier than one second after that tap;
-  Backspace, Enter, and Space are handled as Android key events.
-- **Resize:** resize Chrome and tap the same visible Android control again.
-- **Latency:** after an action, inspect the displayed backend/ADB timings and
-  the time until a new frame sequence is observed.
+The public VM deployment itself runs from systemd and does not depend on the
+developer's computer remaining online.
 
 ## Coordinate mapping
 
-The browser does not treat CSS pixels as Android pixels. The client measures
-the rendered image element and its natural stream dimensions (`frameWidth`,
-`frameHeight`). For element bounds `Rw × Rh` and frame dimensions `Wf × Hf`:
+The browser uses the rendered image bounds and the stream's natural
+`frameWidth`/`frameHeight`; it does not equate CSS pixels with Android pixels.
+If the image is letterboxed, clicks in the unused area are ignored. For the
+visible image area:
 
 ```text
-scale = min(Rw / Wf, Rh / Hf)
-drawnWidth  = Wf * scale
-drawnHeight = Hf * scale
-left/top letterbox = centered unused space within the element
 normalizedX = (pointerX - imageContentLeft) / drawnWidth
 normalizedY = (pointerY - imageContentTop) / drawnHeight
 androidX = floor(normalizedX * AndroidDisplayWidth)
 androidY = floor(normalizedY * AndroidDisplayHeight)
 ```
 
-Clicks in the letterboxed area are ignored. The backend rejects invalid
-normalized coordinates and checks that the captured frame aspect ratio matches
-the Android display before sending `adb shell input tap`. The same normalized
-coordinates are used for swipe endpoints.
-
-## Latency and measurement
-
-The UI reports the browser request duration, backend-to-ADB dispatch duration,
-ADB command duration, and approximate time until a newer MJPEG frame sequence
-is observed. The last measurement includes frontend polling and scheduling;
-it does not measure the exact physical display/compositor presentation time.
-
-No performance result for this screenshot-polling revision is claimed. See
-[the latency notes and procedure](./docs/latency-and-validation.md).
+The same normalized coordinates are used for swipe points. The backend
+validates coordinates and checks image/device aspect ratios. Because the
+browser recalculates image bounds and uses normalized coordinates, resizing
+does not require hardcoded browser dimensions.
 
 ## Known limitations
 
-- One connected emulator is supported at a time; the backend is not a
-  multi-user service.
-- Video uses repeated ADB PNG screenshots delivered as MJPEG over HTTP. It has
-  no audio and may look less smooth and consume more bandwidth than a
-  continuous encoded-video transport.
-- Text is sent through ADB's text input command; Unicode, clipboard, and
-  arbitrary IME behaviors have not been validated.
-- Mouse-wheel input is an approximate swipe, not a native Android wheel event.
-- The backend has no authentication. Its default local bind is loopback; a
-  deployed service can expose it on the VM's configured interface.
-- Emulator disconnect recovery, long-duration soak testing, and deployed
-  performance must be verified in the target environment.
-- Earlier RTC/gRPC and scrcpy/FFmpeg capture experiments did not provide a
-  reliable deployed stream; the current capture path uses screenshot polling.
+- One emulator is shared by every visitor. There is no per-user device,
+  session, file, or application-state isolation.
+- App restrictions are not enforced. A user can navigate outside one app or
+  reach system controls, including Android Home/Back.
+- The public service is unauthenticated plain HTTP. Screen contents and
+  control requests are not protected by TLS or user authorization. Anyone
+  able to reach the URL can operate the shared device.
+- Repeated PNG screenshots and JPEG conversion are less efficient and may
+  look less smooth than a continuous encoded-video transport. There is no
+  audio.
+- The deployment has not been load-tested for concurrent viewers or
+  long-duration stability. Scaling beyond a few users is not supported.
+- ADB text input does not comprehensively support arbitrary Unicode or IME
+  behaviors; wheel scroll is an approximate swipe.
+- Two-way clipboard and session recording are not implemented.
+- A continuous 3–5 minute demo video is required by the assignment but is not
+  in this repository. Add it before final submission.
+- The assignment asks candidates to report actual time spent. This repository
+  does not establish that figure; the author must provide it.
+
+## What went wrong
+
+- The Google Android Emulator WebRTC/gRPC route reached the gateway, but
+  `Rtc.RequestRtcStream` returned `UNIMPLEMENTED` on tested emulator builds.
+  The RTC stream therefore never reached the browser.
+- The scrcpy/FFmpeg experiment displayed a real screen locally, but the
+  deployed Matroska-over-FIFO stream repeatedly failed to publish live frames.
+  A finite recording decoding successfully did not prove a live FIFO worked;
+  probing changes did not establish a fix.
+- A direct Android `screenrecord` H.264 test produced a JPEG, but continuous
+  frame delivery while the process remained alive was not verified. It was
+  rejected as an unproven streaming source, not declared inherently
+  incompatible.
+- The adopted screenshot-polling path is simpler and was manually verified
+  on the public deployment. Its trade-offs are repeated ADB capture, image
+  conversion work, increased bandwidth, and potentially less fluid display
+  updates.
+
+## With more time
+
+- **Scaling:** for more than a few users, provide authenticated session
+  ownership and isolated emulator instances, with quotas, concurrency limits,
+  and reliable idle cleanup. Measure CPU, memory, capture/conversion cost,
+  ADB throughput, network egress, and per-viewer bandwidth before capacity
+  planning. Autoscaling/clustering is not implemented or currently required.
+- **Security:** add TLS and authentication/authorization, rate limits, strict
+  input validation, and private networking for ADB/emulator/debug interfaces.
+  Isolate users at the server/device boundary; browser-only restrictions are
+  not security controls. The current public unauthenticated endpoint is not
+  suitable for sensitive use.
+- **Transport:** evaluate a continuous encoded stream after measuring
+  screenshot-polling latency, quality, and resource consumption on the VM.
+
+## Assignment deliverables and AI record
+
+- Public repository: this repository.
+- Deployed link and usage: <http://34.14.173.43:8000/> (no credentials;
+  shared emulator).
+- Local setup and feature instructions: this README.
+- Architecture and alternatives: [docs/architecture.md](./docs/architecture.md).
+- Measured validation: [docs/latency-and-validation.md](./docs/latency-and-validation.md).
+- AI process record: [PROCESS_LOG.md](./PROCESS_LOG.md).
+- Demo video: **still to be added**; record one continuous 3–5 minute demo of
+  the deployed system.
+
+## Human-authored submission notes — complete before submission
+
+The assignment requires the candidate's own short reflection on decisions
+they made that the AI did not suggest, and one place where AI was wrong or
+unhelpful. Do not submit this as the candidate's personal account without
+review and rewriting it in your own words:
+
+- **My decisions beyond AI suggestions:** `[Author: describe your decisions in your own words.]`
+- **One AI mistake or unhelpful suggestion:** `[Author: review the candidate example in docs/architecture.md, then explain what you noticed and how you corrected course in your own words.]`
+- **Time spent on the assignment:** `[Author: enter your actual time spent.]`

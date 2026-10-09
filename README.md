@@ -1,29 +1,25 @@
 # HealthTick Android Browser
 
-A local implementation of the HealthTick take-home core: view and control a
-real Android Emulator from Chrome. This repository is not deployed; the
-backend, emulator, and browser client must currently run on the same Mac.
+A minimal implementation of the HealthTick take-home core: view and control a
+real Android Emulator from Chrome. A cloud VM deployment exists, but the
+screenshot-polling revision documented here must be deployed and verified
+there before that deployment is considered current.
 
 ## Current status
 
-The local core has been exercised against a real Pixel_7 AVD:
-
-- Android screen displayed and updated in Chrome.
-- Browser tap, swipe, wheel-scroll, and text/special-key input sent to Android.
-- Tap coordinate mapping tested at multiple browser sizes.
-- Initial frame supplied when a browser stream starts.
-
-Deployment, multi-user access, authentication, audio, and optional features
-have not been implemented or tested.
+The backend captures real Android Emulator screenshots using ADB, converts
+them to JPEG, and publishes the latest frame to browser clients. Verify live
+capture, deployment, and browser interaction in the target environment before
+claiming those behaviors for this revision.
 
 ## Architecture
 
 ```text
 Video:
 Pixel_7 Android Emulator
-  -> scrcpy device-side H.264 capture
-  -> Matroska FIFO
-  -> FFmpeg MJPEG conversion
+  -> ADB exec-out screencap -p (250 ms default interval)
+  -> Pillow PNG decode / JPEG encode
+  -> shared latest-frame buffer
   -> Python multipart MJPEG endpoint
   -> React <img> in Chrome
 
@@ -34,10 +30,13 @@ Chrome pointer / wheel / keyboard
   -> Pixel_7 Android Emulator
 ```
 
-At stream startup, the backend captures one real emulator frame with ADB and
-converts it to JPEG so a static device screen is visible immediately. The
-continuous stream is captured by scrcpy and converted by FFmpeg. No Android
-screen is simulated.
+One background thread is shared by all stream clients. It repeatedly runs
+`adb -s <serial> exec-out screencap -p`, validates and converts each PNG with
+Pillow, then publishes a JPEG with an increasing frame sequence. The target
+interval is configurable with `CAPTURE_INTERVAL_SECONDS` (default `0.25`
+seconds); actual cadence also depends on ADB, image conversion, and host
+scheduling. Frames are captured from the real emulator, not mocked or
+prerecorded.
 
 ## Prerequisites
 
@@ -46,27 +45,17 @@ The tested local environment was macOS on Apple Silicon with:
 - Android Emulator 37.2.12.0 and a bootable `Pixel_7` AVD (Android 34, arm64).
 - Android SDK Platform Tools / ADB 36.0.0.
 - Python 3.11.16.
-- scrcpy 5.0.
-- FFmpeg 9.0.2.
+- Pillow installed from `backend/requirements.txt`.
 - Node.js 24.13.1 and npm 11.8.0.
 - Google Chrome.
 
 The AVD must be configured in the local Android SDK; generated AVD data is not
 part of this repository. See [emulator setup](./emulator/README.md).
 
-Install missing host tools using their standard installers. For a Homebrew
-setup, scrcpy and FFmpeg are available with:
-
-```sh
-brew install scrcpy ffmpeg
-```
-
 Confirm the tools resolve in the shell used to start the backend:
 
 ```sh
 python3.11 --version
-scrcpy --version
-ffmpeg -version
 adb version
 node --version
 npm --version
@@ -128,12 +117,19 @@ From the repository root:
 
 ```sh
 python3.11 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
 backend/.venv/bin/python backend/server.py
 ```
 
-The backend uses Python's standard library and does not require Python
-packages to be installed. `scrcpy`, FFmpeg, and ADB must be executable by the
-backend process. The server binds to `127.0.0.1:8000`.
+The backend uses Python's standard library and Pillow. ADB must be executable
+by the backend process. The server binds to `127.0.0.1:8000`. On a deployed
+systemd service, use the same virtual environment for the service executable;
+see the deployment procedure in the validation notes.
+
+Set `CAPTURE_INTERVAL_SECONDS` to change the target capture cadence (for
+example, `0.25` for 250 ms). Lower intervals increase ADB and image-conversion
+load; screenshot polling is not a substitute for a low-latency encoded-video
+transport.
 
 ### 4. Open Chrome
 
@@ -141,8 +137,9 @@ Visit <http://127.0.0.1:8000/>. The initial real emulator frame should appear
 without touching the device. Keep the emulator and backend running while using
 the browser.
 
-To stop the backend, press `Ctrl+C` in its terminal; it terminates its scrcpy
-and FFmpeg children. The emulator can be stopped separately from its terminal.
+To stop the backend, press `Ctrl+C`; the screenshot worker is signaled to stop
+and the server waits for an in-flight ADB command to finish, bounded by its
+command timeout. The emulator can be stopped separately from its terminal.
 
 ## Try the controls
 
@@ -189,22 +186,22 @@ ADB command duration, and approximate time until a newer MJPEG frame sequence
 is observed. The last measurement includes frontend polling and scheduling;
 it does not measure the exact physical display/compositor presentation time.
 
-Observed local actions were approximately **0.5–0.8 seconds** from browser
-action to detected changed frame during this implementation session. See
+No performance result for this screenshot-polling revision is claimed. See
 [the latency notes and procedure](./docs/latency-and-validation.md).
 
 ## Known limitations
 
-- One connected emulator is supported at a time; this is a local development
-  setup, not a deployed or multi-user service.
-- Video is MJPEG over HTTP and has no audio. It uses more bandwidth than a
-  compressed browser-native video transport.
+- One connected emulator is supported at a time; the backend is not a
+  multi-user service.
+- Video uses repeated ADB PNG screenshots delivered as MJPEG over HTTP. It has
+  no audio and may look less smooth and consume more bandwidth than a
+  continuous encoded-video transport.
 - Text is sent through ADB's text input command; Unicode, clipboard, and
   arbitrary IME behaviors have not been validated.
 - Mouse-wheel input is an approximate swipe, not a native Android wheel event.
-- The backend has no authentication and binds only to loopback.
-- Emulator disconnect recovery, long-duration soak testing, and deployment
-  have not been validated.
-- The native Google Emulator RTC/gRPC service previously returned
-  `UNIMPLEMENTED` for `Rtc.RequestRtcStream` in the tested macOS setup; this
-  implementation uses scrcpy/FFmpeg instead.
+- The backend has no authentication. Its default local bind is loopback; a
+  deployed service can expose it on the VM's configured interface.
+- Emulator disconnect recovery, long-duration soak testing, and deployed
+  performance must be verified in the target environment.
+- Earlier RTC/gRPC and scrcpy/FFmpeg capture experiments did not provide a
+  reliable deployed stream; the current capture path uses screenshot polling.

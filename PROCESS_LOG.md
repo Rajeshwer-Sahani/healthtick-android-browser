@@ -4063,3 +4063,250 @@ The exact user prompt for this work is preserved verbatim in Entry 020.
 ### User Decision / Next Step
 
 Deploy the source to the existing VM and run the live-frame and stability acceptance tests before describing the public deployment as fixed.
+
+## Entry 023 — Screenrecord Continuous-Output Investigation
+
+### Time
+
+2026-10-09 13:54 IST
+
+### Exact User Prompt
+
+```text
+Read `AGENTS.md`, `PROCESS_LOG.md`, and `backend/server.py` before making changes.
+
+We need to finish deploying the HealthTick Android Browser assignment urgently. The deployed backend is running on a GCP Debian 13 VM with Android Emulator API 35, scrcpy 5.0, FFmpeg 7.1.5, and ADB.
+
+Current architecture attempts using scrcpy MKV FIFO fail to produce live JPEG frames. Production logs repeatedly report no live JPEG within 15 seconds and HTTP 503 responses.
+
+Verified experiments:
+
+- scrcpy successfully records a real Android screen to `/tmp/healthtick-capture.mkv`.
+- FFmpeg successfully decodes that recording and produces a valid JPEG.
+- `adb exec-out screenrecord --output-format=h264 ... | ffmpeg -f h264 ...` produces one valid JPEG in the tested shell pipeline, but continuous frame delivery has NOT been verified.
+- Do not claim these experiments prove live streaming.
+TASK:
+
+1. Inspect the current backend implementation and identify why its reader/pipeline only obtains one frame in the direct H.264 experiment.
+2. Determine whether Android `screenrecord` flushes H.264 output continuously on this Android 15 emulator. Reproduce with a test that observes bytes/frames while the process is still running, not only after EOF.
+3. If screenrecord does not flush continuously, reject it as the live source and test an appropriate persistent capture mechanism. Do not spend time repeatedly adjusting FFmpeg probe settings.
+4. Prefer the smallest reliable architecture that produces a continuous real Android screen stream on this VM. Preserve the current frontend contract, browser taps/swipes/scroll/keyboard input, coordinate mapping, and latency metrics.
+5. Make all changes in source control, not by manually patching only the VM.
+6. Append the exact prompt, diagnosis, experiments, results, failures, and decisions to `PROCESS_LOG.md` without deleting or rewriting prior entries.
+7. Add meaningful tests for stream behavior, not just command-string construction.
+8. Run Python compile, backend unit tests, frontend production build, and `git diff --check`.
+9. Do not commit or push until you show the exact fix and its real validation evidence.
+REQUIRED SUCCESS CRITERIA:
+
+- The real VM must produce multiple complete JPEG frames from a continuous stream.
+- The deployed `/stream.mjpg` endpoint must deliver those frames.
+- The browser must show the real Android screen without needing a manual Home tap.
+- Browser input must still control the emulator.
+- If live capture cannot be verified, clearly report the blocker instead of claiming success.
+Do not build a fake UI or replace the real Android screen with periodic screenshots. Focus only on getting the real deployment working.
+```
+
+### What AI Did
+
+- Read `AGENTS.md`, the latest `PROCESS_LOG.md` entries, and the complete relevant `VideoPipeline` implementation in `backend/server.py` before editing.
+- Inspected `_read_jpegs()`: it loops over stdout reads until EOF, parses every complete JPEG marker pair present in the stream (including multiple frames from one read), publishes each frame, and increments a sequence counter. The current backend does not invoke `screenrecord`; its production capture remains scrcpy recording to a Matroska FIFO followed by FFmpeg MJPEG output. Therefore this source cannot establish why the separate direct H.264 shell experiment emitted only one frame.
+- Added a focused backend test that writes two separate marker-delimited frame payloads to a blocking pipe at separate times, checks that the reader publishes both with increasing sequence numbers, and checks the producer process remains alive at both publications. This validates the reader's incremental delivery behavior only; the payloads are marker test data, not real JPEG images or Android video.
+- Checked local Android tooling. ADB 36 is installed at the SDK path, but `adb devices -l` reports no attached/running device. The local SDK has Pixel_7 and android-34 AVD configuration, not the reported Android 15 VM device; no local emulator was started because it would not reproduce the requested remote API 35 test.
+- Checked installed management tools: `gcloud` is unavailable. An SSH attempt to the supplied VM address failed with `Host key verification failed`; no `known_hosts` file exists. Host-key checking was not bypassed and host trust was not changed.
+- Probed the public `/stream.mjpg` endpoint with a 22-second timeout. It returned HTTP 503 with `{"error": "Live Android video unavailable: capture pipeline changed while waiting for its first live frame"}` and the response contained zero JPEG start/end markers.
+- Ran `python3 -m py_compile backend/server.py`; passed.
+- Ran `python3 -m unittest discover -s backend -v`; both the existing FFmpeg-command test and the new incremental reader test passed.
+- Ran `cd frontend && npm run build`; Vite production build passed. An initial attempt to run `npm run build` from the repository root failed because there is no root `package.json`; rerunning from `frontend/` succeeded.
+- Ran `git diff --check`; passed.
+
+### Diagnosis, Results, and Blocker
+
+- The backend reader has no one-frame limit: it reads until FFmpeg stdout closes and repeatedly extracts complete JPEGs. Its stored `frame` is the latest frame, while `sequence` records successive publications. The new behavior test confirms the reader can publish two frames incrementally while its test producer remains alive.
+- Whether Android 15 `screenrecord` flushes H.264 continuously remains unresolved. The required live-emulator observation could not be run: this machine has no connected adb device, and the GCP VM could not be reached with a trusted SSH key; `gcloud` is not installed. No production source was switched to `screenrecord` or another capture mechanism without evidence.
+- The public endpoint's observed HTTP 503 is evidence that the deployed capture startup is currently failing, but the reported error does not establish the exact remote process failure or test Android `screenrecord`.
+- The test fixture is only marker-delimited byte data; it does not validate JPEG decoding, live Android frames, source flushing, browser rendering, or input behavior.
+
+### Files Changed
+
+- `backend/test_video_pipeline.py` (incremental reader behavior test only)
+- `PROCESS_LOG.md` (append-only)
+
+### User Decision / Next Step
+
+Provide a trusted SSH access path/host-key verification for the GCP VM, or run the Android 15 `screenrecord` live-output experiment on the VM and provide timestamped byte/frame observations while `screenrecord` remains running. Until then, the requested continuous-source diagnosis and deployed real-frame acceptance criteria are blocked. No commit or push was made.
+
+## Entry 024 — ADB Screenshot-Polling Capture Migration
+
+### Time
+
+2026-10-09 14:35 IST
+
+### Exact User Prompt
+
+```text
+Read `AGENTS.md` and `PROCESS_LOG.md` first. Follow the mandatory append-only logging instructions.
+
+We need to finish the HealthTick take-home assignment today. The public repository is `Rajeshwer-Sahani/healthtick-android-browser`. The cloud VM is Debian 13 at `34.14.173.43`, with a working Android 15 emulator (`emulator-5554`), ADB, Python, and a public backend on port 8000. SSH access from my Mac now works using `~/.ssh/healthtick_vm`.
+
+Stop debugging the existing scrcpy → Matroska FIFO → FFmpeg → MJPEG capture pipeline. Replace it with the simpler screenshot-polling implementation described below.
+
+### Required implementation
+
+1. Replace `VideoPipeline` in `backend/server.py` with a robust continuous screenshot capture loop using:
+
+- `adb -s <serial> exec-out screencap -p`
+- Pillow to decode PNG and encode JPEG
+- A thread-safe latest-frame buffer and monotonically increasing frame sequence
+- A multipart HTTP stream consumed by the existing browser `<img>` element
+- A configurable capture interval, initially 250 ms
+- Clear startup, timeout, error, shutdown, and recovery handling
+- No scrcpy, FFmpeg, Matroska FIFO, or screenrecord in the new capture path
+2. Add the required Pillow dependency and document installation. Make the production systemd service use an environment in which Pillow is installed. Do not break the current service configuration without providing exact migration commands.
+3. Preserve existing functionality:
+
+- `/api/health`
+- `/api/metrics`
+- `/stream.mjpg`
+- `/api/input/tap`
+- `/api/input/swipe`
+- `/api/input/scroll`
+- `/api/input/key`
+- `/api/input/text`
+- Android Home/Back buttons
+- Normalized coordinate mapping and browser resize support
+- Existing input timing metrics
+- Thread-safe stream startup, multiple browser clients, and clean shutdown
+4. Keep the frontend changes minimal. The existing React app should continue consuming the multipart stream. If necessary, correct its reconnection handling for the new capture loop.
+5. Update tests to verify:
+
+- Multiple actual captured frames are published over time
+- The JPEG output contains complete image data
+- Capture errors are reported and recovery works
+- Input routes and coordinate validation remain intact
+- Python compilation, backend tests, frontend production build, and `git diff --check` pass
+6. Update `README.md` and `docs/latency-and-validation.md` to describe the actual screenshot-polling architecture, setup, capture interval, limitations, and how to measure latency. Do not claim a performance result until it is measured. Keep the mandatory `PROCESS_LOG.md` append-only and record this prompt verbatim, what changed, test results, failures, and the next user decision.
+
+### Validation and deployment
+Do not stop after unit tests. The goal is a working deployment.
+
+First run the automated tests and build. Then provide exact commands to deploy the changes to the VM using the now-working SSH key. The deployment must install dependencies, configure the service correctly, restart it, and test `/api/health` and `/stream.mjpg`.
+
+The live-stream verification must prove that multiple complete JPEG frames arrive, not merely that the HTTP endpoint responds. Then open `http://34.14.173.43:8000` in a browser and verify the real Android screen, tap, swipe, scroll, keyboard input, and resize behavior.
+
+Commit the changes with a focused message only after reviewing the diff. Do not claim deployment success or verified browser behavior unless it was actually observed. Report the exact remaining blocker if live validation fails.
+
+Prioritize a reliable implementation of the mandatory core over all bonus features. Do not add unrelated features or redesign the frontend.
+```
+
+### What AI Did
+
+- Read `AGENTS.md`, the append-only process log, the backend capture/input/routes, frontend stream integration, and current README/latency documentation before editing.
+- Replaced the scrcpy/FFmpeg/FIFO process pipeline with a shared worker that polls `adb -s <serial> exec-out screencap -p` at a configurable 250 ms target interval, decodes PNG and encodes JPEG through Pillow, retains the latest frame under a condition lock, and increments a monotonic sequence.
+- Added startup readiness waiting, stale-frame/thread detection, capture error logging/diagnostics, retry through the capture worker, synchronized clients, and bounded shutdown while an ADB command is in flight. Preserved the existing multipart route and input handlers.
+- Added `backend/requirements.txt` declaring Pillow.
+- Updated README and latency documentation to describe screenshot polling, venv/Pillow installation, interval limitations, systemd migration, and latency measurement without asserting a result for this unmeasured capture implementation.
+- Replaced the stale command-only backend test with tests for incremental JPEG production/decoding, capture error recovery, invalid PNG reporting, multipart frames, health/metrics routes, input routes, and invalid normalized coordinates.
+- Created the ignored `backend/.venv` and installed the declared Pillow dependency for local validation. The available local `python3` created Python 3.9 in this venv; the target Debian VM is user-reported as having Python 3, and its exact interpreter will be checked during deployment.
+- Ran initial Python compile and five backend tests; all passed. Ran the frontend production build; passed. Re-ran these validations after adding health/metrics and multipart coverage (results to be logged in a follow-up entry).
+- Attempted read-only SSH access to the VM using `~/.ssh/healthtick_vm`. The key is encrypted, no identity is loaded in `ssh-agent`, and non-interactive SSH returned `Permission denied (publickey)`; attempting to derive the public key reported an incorrect passphrase. No passphrase was requested or exposed, and no VM files/services were changed.
+
+### Errors / Failures / Decisions Pending
+
+- A previous SSH attempt returned `Host key verification failed`; the later attempt using the provided identity file reached authentication but could not decrypt/use the key in this non-interactive environment. `ssh-add -l` reported no identities loaded.
+- The screenshot-polling source has not yet been run against the production emulator, and the public browser has not been tested with this source revision. Automated tests use generated PNG inputs and prove the conversion/worker/HTTP behavior, not real Android capture.
+- No commit or push has been made. Review and deployment remain pending.
+
+### Files Changed So Far
+
+- `backend/server.py`
+- `backend/test_video_pipeline.py`
+- `backend/requirements.txt`
+- `README.md`
+- `docs/latency-and-validation.md`
+- `PROCESS_LOG.md` (append-only)
+
+### User Decision / Next Step
+
+Unlock `~/.ssh/healthtick_vm` into the current macOS SSH agent locally (without sharing its passphrase), or request command-only deployment instructions. Then verify the real VM screenshot stream and browser interactions before deciding whether to commit.
+
+## Entry 025 — Screenshot Pipeline Test and Build Results
+
+### Time
+
+2026-10-09 14:36 IST
+
+### User Prompt Reference
+
+The exact user prompt for this implementation is preserved verbatim in Entry 024.
+
+### What AI Did
+
+- Extended the backend tests to exercise `/api/health`, `/api/metrics`, and `/stream.mjpg` over local HTTP. The multipart test decodes stream payload structure and verifies at least three JPEG SOI/EOI marker pairs from JPEGs encoded by Pillow. Separate tests verify multiple increasing frame sequences, PNG-to-JPEG dimensions/decoding, recovery after an ADB error, rejection of invalid PNG data, preserved input routes, timing response fields, and normalized-coordinate rejection.
+- Re-ran `python3 -m py_compile backend/server.py backend/test_video_pipeline.py`; passed.
+- Re-ran `backend/.venv/bin/python -m unittest discover -s backend -v`; all six backend tests passed.
+- Re-ran `cd frontend && npm run build`; Vite production build passed.
+- Ran `git diff --check`; passed.
+- Attempted `ssh-add -l` after the user selected the option to unlock the key; the agent still reported no identities. No passphrase was solicited or entered, and no remote modifications occurred.
+
+### Errors / Failures / Limitations
+
+- The tests generate PNG captures in-process and confirm actual JPEG image data from Pillow, but they do not establish live Android capture from the GCP emulator.
+- VM authentication is still blocked until the encrypted key is unlocked in the local SSH agent. Public `/api/health`, deployed MJPEG frame delivery, and browser interaction with this source revision therefore remain unverified.
+- `git diff --check` is clean; the working tree remains uncommitted pending final review and deployment evidence.
+
+### User Decision / Next Step
+
+The user selected to unlock the SSH key and notify the assistant. The key is not yet present in the agent. Once unlocked, inspect the current systemd unit, deploy source and frontend build, install Pillow in the backend venv, restart the service, and verify multiple complete live emulator JPEGs plus browser inputs before committing.
+
+## Entry 026 — Final Local Checks and Deployment Blocker
+
+### Time
+
+2026-10-09 14:38 IST
+
+### User Prompt Reference
+
+The exact user prompt for this implementation is preserved verbatim in Entry 024.
+
+### What AI Did
+
+- Added the exact systemd drop-in migration procedure to `docs/latency-and-validation.md`. It preserves inherited service user, environment, working directory, restart policy, and networking while moving `ExecStart` to the Pillow-enabled venv.
+- Added health and metrics HTTP route tests in addition to input route and multipart stream coverage.
+- Final local validation: `python3 -m py_compile backend/server.py backend/test_video_pipeline.py` passed; `backend/.venv/bin/python -m unittest discover -s backend -v` passed all six tests; `cd frontend && npm run build` passed; `git diff --check` passed.
+- Reviewed the source, focused tests, dependency, README, latency/deployment documentation, and process-log changes. The frontend source was not changed.
+- Retried `ssh-add -l`; it still reports no identities loaded. A direct SSH attempt using the encrypted key file failed with `Permission denied (publickey)` after a noninteractive key-decryption prompt. No SSH host-verification override was used.
+
+### Errors / Failures / Limitations
+
+- The VM was not modified because SSH authentication is still unavailable in this execution environment.
+- No actual Android VM PNG capture, deployed multipart JPEG sequence, browser rendering, or real tap/swipe/scroll/keyboard/resize test has been observed for this revision.
+- The six automated tests use actual Pillow-generated PNG/JPEG image data but mock the ADB capture function. They validate capture-loop publication, encoding, recovery, multipart delivery, and route input contracts, not live Android.
+- No commit or push has been made yet; the source remains available for deployment once authenticated SSH is available.
+
+### User Decision / Next Step
+
+The user selected that they would unlock the SSH key and notify the assistant. The agent check still reports no identities. Unlock `~/.ssh/healthtick_vm` locally (without sharing the passphrase), then continue with remote service inspection, deployment, real-frame verification, and browser interaction tests. If the key cannot be unlocked here, run the deployment commands provided by the assistant from the Mac terminal.
+
+## Entry 027 — README Deployment Status Clarification
+
+### Time
+
+2026-10-09 14:39 IST
+
+### User Prompt Reference
+
+The exact user prompt for this implementation is preserved verbatim in Entry 024.
+
+### What AI Did
+
+- Corrected the README introduction and limitations to reflect that a cloud VM exists while explicitly stating the screenshot-polling revision has not yet been deployed or verified.
+- Clarified that loopback is the default local bind and that deployment may expose the unauthenticated service on the configured VM interface.
+- This was a documentation-only correction; the preceding Python/backend/frontend checks are unchanged.
+
+### Errors / Failures
+
+- No new test was needed for this documentation-only correction. Remote deployment remains blocked by the missing unlocked SSH identity.
+
+### User Decision / Next Step
+
+Unlock the SSH key locally to continue the requested deployment and live-browser acceptance checks; otherwise deploy using the documented service migration procedure from the Mac terminal.

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import math
@@ -11,12 +12,13 @@ import re
 import shlex
 import signal
 import subprocess
-import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+
+from PIL import Image, UnidentifiedImageError
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,16 +26,16 @@ ADB = os.environ.get(
     "ADB_PATH",
     str(Path.home() / "Library/Android/sdk/platform-tools/adb"),
 )
-SCRCPY = os.environ.get("SCRCPY_PATH", "scrcpy")
-FFMPEG = os.environ.get("FFMPEG_PATH", "ffmpeg")
 SERIAL_OVERRIDE = os.environ.get("ADB_SERIAL")
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8000"))
 MAX_BODY_BYTES = 16_384
-BOUNDARY = b"frame"
-FRAME_STALE_SECONDS = 5
+CAPTURE_INTERVAL_SECONDS = float(os.environ.get("CAPTURE_INTERVAL_SECONDS", "0.25"))
+CAPTURE_COMMAND_TIMEOUT_SECONDS = 10
+FRAME_STALE_SECONDS = max(5.0, CAPTURE_INTERVAL_SECONDS * 8)
 STARTUP_TIMEOUT_SECONDS = 15
-STARTUP_RETRY_DELAY_SECONDS = 2
+if not math.isfinite(CAPTURE_INTERVAL_SECONDS) or CAPTURE_INTERVAL_SECONDS <= 0:
+    raise ValueError("CAPTURE_INTERVAL_SECONDS must be a finite positive number")
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -96,38 +98,42 @@ def display_size(serial: str) -> tuple[int, int]:
     return tuple(map(int, sizes[-1]))
 
 
-def ffmpeg_command(fifo: Path) -> list[str]:
-    return [
-        FFMPEG, "-hide_banner", "-loglevel", "warning",
-        "-f", "matroska", "-probesize", "10M", "-analyzeduration", "10M",
-        "-i", str(fifo), "-an", "-fps_mode", "passthrough",
-        "-c:v", "mjpeg", "-q:v", "7", "-f", "image2pipe", "pipe:1",
-    ]
+def encode_screenshot_jpeg(png: bytes) -> bytes:
+    try:
+        with Image.open(io.BytesIO(png)) as image:
+            image.load()
+            rgb = image.convert("RGB")
+            output = io.BytesIO()
+            rgb.save(output, format="JPEG", quality=80)
+            return output.getvalue()
+    except (UnidentifiedImageError, OSError) as error:
+        raise ValueError(f"ADB screencap returned an invalid PNG: {error}") from error
+
+
+def capture_screenshot(serial: str) -> bytes:
+    return run_adb(
+        ["-s", serial, "exec-out", "screencap", "-p"],
+        timeout=CAPTURE_COMMAND_TIMEOUT_SECONDS,
+    )
 
 
 class VideoPipeline:
-    """One device-side scrcpy capture shared by all connected browser clients."""
+    """Continuously poll real emulator screenshots and share the latest JPEG."""
 
     def __init__(self) -> None:
         self.condition = threading.Condition()
         self.lifecycle_lock = threading.Lock()
         self.frame: bytes | None = None
         self.sequence = 0
-        self.live_frame_sequence = 0
+        self.frame_generation = 0
         self.last_frame_time: float | None = None
         self.started = False
         self.starting = False
         self.closed = False
         self.generation = 0
-        self.directory: tempfile.TemporaryDirectory[str] | None = None
-        self.ffmpeg: subprocess.Popen[bytes] | None = None
-        self.scrcpy: subprocess.Popen[bytes] | None = None
-        self.ffmpeg_log: Any | None = None
-        self.scrcpy_log: Any | None = None
-        self.reader: threading.Thread | None = None
-        self.reader_error: str | None = None
-        self.start_error: ApiError | None = None
-        self.retry_after = 0.0
+        self.worker: threading.Thread | None = None
+        self.stop_event: threading.Event | None = None
+        self.capture_error: str | None = None
 
     def _publish(self, frame: bytes, generation: int) -> None:
         with self.condition:
@@ -136,126 +142,97 @@ class VideoPipeline:
             self.frame = frame
             self.sequence += 1
             sequence = self.sequence
-            self.live_frame_sequence = self.sequence
+            self.frame_generation = generation
             self.last_frame_time = time.monotonic()
             first_frame = self.starting
             self.starting = False
-            self.start_error = None
-            self.retry_after = 0.0
+            recovered = self.capture_error is not None
+            self.capture_error = None
             self.condition.notify_all()
         if first_frame:
             LOG.info(
-                "First live JPEG published: generation=%d sequence=%d bytes=%d at=%s",
+                "First screenshot JPEG published: generation=%d sequence=%d bytes=%d at=%s",
                 generation, sequence, len(frame),
                 time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             )
+        elif recovered:
+            LOG.info("Screenshot capture recovered: generation=%d sequence=%d", generation, sequence)
 
     def _stale_reason_locked(self) -> str | None:
         if self.closed:
             return "pipeline is shutting down"
         if not self.started:
             return "pipeline is not running"
+        if self.worker is None or not self.worker.is_alive():
+            return "screenshot capture thread is not running"
         if self.starting:
             return None
-        if self.reader_error:
-            return f"JPEG reader stopped: {self.reader_error}"
-        if self.ffmpeg is None:
-            return "FFmpeg process is missing"
-        if self.ffmpeg.poll() is not None:
-            return f"FFmpeg exited with status {self.ffmpeg.returncode}"
-        if self.scrcpy is None:
-            return "scrcpy process is missing"
-        if self.scrcpy.poll() is not None:
-            return f"scrcpy exited with status {self.scrcpy.returncode}"
-        if self.reader is None or not self.reader.is_alive():
-            return "JPEG reader thread is not running"
         if self.last_frame_time is None:
-            return "no live frame has been published"
+            return f"no screenshot frame has been published: {self.capture_error or 'capture pending'}"
         silent_for = time.monotonic() - self.last_frame_time
         if silent_for > FRAME_STALE_SECONDS:
-            return f"no JPEG frame published for {silent_for:.1f} seconds"
+            return (
+                f"no screenshot frame published for {silent_for:.1f} seconds"
+                + (f": {self.capture_error}" if self.capture_error else "")
+            )
         return None
 
     def is_healthy(self) -> bool:
         with self.condition:
             return (
                 self._stale_reason_locked() is None
-                and self.live_frame_sequence > 0
+                and self.frame_generation == self.generation
             )
 
-    @staticmethod
-    def _log_tail(log_file: Any | None) -> str:
-        if log_file is None:
-            return ""
-        try:
-            log_file.flush()
-            log_file.seek(0, os.SEEK_END)
-            size = log_file.tell()
-            log_file.seek(max(0, size - 4096))
-            return log_file.read().decode(errors="replace").strip()
-        except (OSError, ValueError):
-            return ""
+    def diagnostic(self) -> str | None:
+        with self.condition:
+            return self.capture_error or self._stale_reason_locked()
 
-    def _close_log(self, log_file: Any | None, name: str) -> None:
-        details = self._log_tail(log_file)
-        if details:
-            LOG.warning("%s stderr: %s", name, details)
-        if log_file is not None:
-            log_file.close()
-
-    @staticmethod
-    def _stop_process(process: subprocess.Popen[bytes] | None) -> None:
-        if process is None or process.poll() is not None:
-            return
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        except OSError:
-            process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            except OSError:
-                process.kill()
-            process.wait()
-        except ProcessLookupError:
-            pass
-
-    def _stop_resources_locked(self, permanent: bool = False) -> None:
-        reader = self.reader
+    def _stop_worker_locked(self, permanent: bool = False) -> None:
+        stop_event = self.stop_event
+        worker = self.worker
         with self.condition:
             self.generation += 1
             generation = self.generation
             self.started = False
             self.starting = False
-            self.reader = None
-            self.condition.notify_all()
-        self._stop_process(self.scrcpy)
-        self._stop_process(self.ffmpeg)
-        if reader is not None and reader is not threading.current_thread():
-            reader.join(timeout=2)
-        if self.ffmpeg is not None and self.ffmpeg.stdout is not None:
-            self.ffmpeg.stdout.close()
-        self.scrcpy = None
-        self.ffmpeg = None
-        self._close_log(self.scrcpy_log, "scrcpy")
-        self._close_log(self.ffmpeg_log, "FFmpeg")
-        self.scrcpy_log = None
-        self.ffmpeg_log = None
-        if self.directory is not None:
-            self.directory.cleanup()
-            self.directory = None
-        if permanent:
-            with self.condition:
+            self.worker = None
+            self.stop_event = None
+            if permanent:
                 self.closed = True
-        LOG.info("Video pipeline stopped: generation=%d permanent=%s", generation, permanent)
+            self.condition.notify_all()
+        if stop_event is not None:
+            stop_event.set()
+        if worker is not None and worker is not threading.current_thread():
+            worker.join(timeout=CAPTURE_COMMAND_TIMEOUT_SECONDS + 2)
+            if worker.is_alive():
+                LOG.error("Screenshot capture thread did not stop within its timeout")
+        LOG.info("Screenshot capture stopped: generation=%d permanent=%s", generation, permanent)
         with self.condition:
             self.condition.notify_all()
+
+    def _capture_loop(self, generation: int, serial: str, stop_event: threading.Event) -> None:
+        while not stop_event.is_set():
+            capture_started = time.monotonic()
+            try:
+                png = capture_screenshot(serial)
+                frame = encode_screenshot_jpeg(png)
+                self._publish(frame, generation)
+            except Exception as error:
+                message = str(error)
+                with self.condition:
+                    if generation != self.generation or self.closed:
+                        return
+                    changed = message != self.capture_error
+                    self.capture_error = message
+                    self.condition.notify_all()
+                if changed:
+                    LOG.exception(
+                        "Android screenshot capture failed: generation=%d device=%s",
+                        generation, serial,
+                    )
+            remaining = CAPTURE_INTERVAL_SECONDS - (time.monotonic() - capture_started)
+            stop_event.wait(max(0.0, remaining))
 
     def _launch_locked(self) -> int:
         with self.condition:
@@ -263,98 +240,55 @@ class VideoPipeline:
             generation = self.generation
             self.started = True
             self.starting = True
-            self.frame = None
-            self.live_frame_sequence = 0
-            self.last_frame_time = None
-            self.reader_error = None
-            self.start_error = None
-            self.reader = None
+            self.capture_error = None
         try:
             serial = connected_emulator()
             display_size(serial)
-            self.directory = tempfile.TemporaryDirectory(prefix="healthtick-stream-")
-            fifo = Path(self.directory.name) / "scrcpy.mkv"
-            os.mkfifo(fifo)
-            self.ffmpeg_log = tempfile.TemporaryFile()
-            self.scrcpy_log = tempfile.TemporaryFile()
-
-            self.ffmpeg = subprocess.Popen(
-                ffmpeg_command(fifo),
-                stdout=subprocess.PIPE,
-                stderr=self.ffmpeg_log,
-                bufsize=0,
-                start_new_session=True,
-            )
-            env = os.environ.copy()
-            env["PATH"] = f"{Path(ADB).parent}:{env.get('PATH', '')}"
-            self.scrcpy = subprocess.Popen(
-                [
-                    SCRCPY, "--no-window", "--no-playback", "--no-control",
-                    "--no-audio", "--max-size=720", "--max-fps=15",
-                    "--video-bit-rate=2M",
-                    f"--record={fifo}", "--record-format=mkv",
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=self.scrcpy_log,
-                env=env,
-                start_new_session=True,
-            )
-            self.reader = threading.Thread(
-                target=self._read_jpegs,
-                args=(generation,),
-                name=f"mjpeg-reader-{generation}",
+            stop_event = threading.Event()
+            worker = threading.Thread(
+                target=self._capture_loop,
+                args=(generation, serial, stop_event),
+                name=f"screenshot-capture-{generation}",
                 daemon=True,
             )
-            self.reader.start()
+            self.stop_event = stop_event
+            self.worker = worker
+            worker.start()
             LOG.info(
-                "Video pipeline started: generation=%d device=%s scrcpy_pid=%d ffmpeg_pid=%d fifo=%s",
-                generation, serial, self.scrcpy.pid, self.ffmpeg.pid, fifo,
+                "Screenshot capture started: generation=%d device=%s interval_ms=%d",
+                generation, serial, round(CAPTURE_INTERVAL_SECONDS * 1000),
             )
-            LOG.info("JPEG reader started: generation=%d", generation)
             with self.condition:
                 self.condition.notify_all()
             return generation
         except Exception as error:
-            details = "; ".join(
-                part for part in (
-                    str(error),
-                    self._log_tail(self.scrcpy_log),
-                    self._log_tail(self.ffmpeg_log),
-                ) if part
-            )
-            self._stop_resources_locked()
-            message = f"Could not start live screen capture: {details}"
             LOG.exception("Video pipeline startup failed: generation=%d", generation)
+            self.started = False
+            self.starting = False
+            self.capture_error = str(error)
             status = error.status if isinstance(error, ApiError) else 503
-            self.start_error = ApiError(status, message)
-            self.retry_after = time.monotonic() + STARTUP_RETRY_DELAY_SECONDS
-            raise self.start_error from error
+            raise ApiError(status, f"Could not start screenshot capture: {error}") from error
 
     def start(self) -> None:
         with self.lifecycle_lock:
             with self.condition:
                 if self.closed:
-                    raise ApiError(503, "Video pipeline is shutting down")
+                    raise ApiError(503, "Screenshot capture pipeline is shutting down")
+                healthy_startup = (
+                    self.started and self.starting
+                    and self.worker is not None and self.worker.is_alive()
+                )
                 reason = self._stale_reason_locked()
-                if self.started and reason is None:
+                if self.started and (reason is None or healthy_startup):
                     generation = self.generation
                 else:
-                    if (
-                        not self.started
-                        and self.start_error is not None
-                        and time.monotonic() < self.retry_after
-                    ):
-                        raise ApiError(
-                            self.start_error.status,
-                            f"Recent capture startup failed; retrying shortly: {self.start_error}",
-                        )
                     if self.started:
                         LOG.warning(
-                            "Video pipeline stale: generation=%d reason=%s",
+                            "Screenshot capture stale: generation=%d reason=%s",
                             self.generation, reason,
                         )
-                        self._stop_resources_locked()
-                    LOG.info("Restarting video capture after: %s", reason)
+                        self._stop_worker_locked()
+                    LOG.info("Starting screenshot capture after: %s", reason)
                     generation = self._launch_locked()
         self._wait_for_live_frame(generation)
 
@@ -363,91 +297,29 @@ class VideoPipeline:
         failure: str | None = None
         with self.condition:
             while generation == self.generation and not self.closed:
-                if self.live_frame_sequence > 0:
+                if self.frame_generation == generation and self.frame is not None:
                     reason = self._stale_reason_locked()
                     if reason is None:
                         return
                     failure = reason
                     break
-                if self.reader_error:
-                    failure = self.reader_error
+                if self.worker is None or not self.worker.is_alive():
+                    failure = "screenshot capture thread stopped before publishing a frame"
                     break
-                for name, process in (("FFmpeg", self.ffmpeg), ("scrcpy", self.scrcpy)):
-                    if process is not None and process.poll() is not None:
-                        failure = f"{name} exited with status {process.returncode}"
-                        break
-                if failure:
-                    break
+                if self.capture_error:
+                    failure = self.capture_error
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    failure = f"no live JPEG frame within {STARTUP_TIMEOUT_SECONDS} seconds"
+                    failure = (
+                        f"no screenshot frame within {STARTUP_TIMEOUT_SECONDS} seconds"
+                        + (f": {self.capture_error}" if self.capture_error else "")
+                    )
                     break
                 self.condition.wait(min(remaining, 0.25))
             if failure is None:
-                failure = "capture pipeline changed while waiting for its first live frame"
-        with self.lifecycle_lock:
-            if generation == self.generation:
-                details = "; ".join(
-                    part for part in (
-                        failure,
-                        self._log_tail(self.scrcpy_log),
-                        self._log_tail(self.ffmpeg_log),
-                    ) if part
-                )
-                LOG.error("Video pipeline startup did not produce a live frame: %s", details)
-                self._stop_resources_locked()
-                failure = details
-                self.start_error = ApiError(503, f"Live Android video unavailable: {details}")
-                self.retry_after = time.monotonic() + STARTUP_RETRY_DELAY_SECONDS
-        raise ApiError(503, f"Live Android video unavailable: {failure}")
-
-    def _read_jpegs(self, generation: int) -> None:
-        ffmpeg = self.ffmpeg
-        if ffmpeg is None or ffmpeg.stdout is None:
-            with self.condition:
-                if generation == self.generation:
-                    self.reader_error = "FFmpeg stdout is unavailable"
-                    self.starting = False
-                    self.condition.notify_all()
-            return
-        stdout = ffmpeg.stdout
-        buffer = bytearray()
-        start = b"\xff\xd8"
-        end = b"\xff\xd9"
-        reason = "FFmpeg output closed"
-        try:
-            while generation == self.generation:
-                chunk = stdout.read(65536)
-                if not chunk:
-                    break
-                buffer.extend(chunk)
-                while True:
-                    frame_start = buffer.find(start)
-                    if frame_start < 0:
-                        if len(buffer) > 1:
-                            del buffer[:-1]
-                        break
-                    if frame_start:
-                        del buffer[:frame_start]
-                    frame_end = buffer.find(end, 2)
-                    if frame_end < 0:
-                        if len(buffer) > 20_000_000:
-                            LOG.error("Discarding oversized incomplete JPEG from FFmpeg")
-                            buffer.clear()
-                        break
-                    frame_end += len(end)
-                    self._publish(bytes(buffer[:frame_end]), generation)
-                    del buffer[:frame_end]
-        except Exception as error:
-            reason = f"JPEG reader failed: {error}"
-            LOG.exception("JPEG reader failed: generation=%d", generation)
-        finally:
-            with self.condition:
-                if generation == self.generation and not self.closed:
-                    self.reader_error = reason
-                    self.starting = False
-                    self.condition.notify_all()
-                    LOG.error("JPEG reader stopped: generation=%d reason=%s", generation, reason)
+                failure = "screenshot capture pipeline changed while waiting for its first frame"
+        if failure:
+            raise ApiError(503, f"Live Android screenshot unavailable: {failure}")
 
     def current(self) -> tuple[int, bytes | None]:
         with self.condition:
@@ -468,7 +340,7 @@ class VideoPipeline:
     def stop(self) -> None:
         with self.lifecycle_lock:
             if not self.closed:
-                self._stop_resources_locked(permanent=True)
+                self._stop_worker_locked(permanent=True)
 
 
 VIDEO = VideoPipeline()
@@ -589,6 +461,7 @@ class Handler(BaseHTTPRequestHandler):
                     "width": width,
                     "height": height,
                     "video_ready": VIDEO.is_healthy(),
+                    "video_error": VIDEO.diagnostic(),
                 })
             except ApiError as error:
                 self._json(error.status, {"error": str(error)})
@@ -614,6 +487,8 @@ class Handler(BaseHTTPRequestHandler):
             while not VIDEO.closed:
                 result = VIDEO.wait_for_frame(sequence, timeout=1)
                 if result is None:
+                    if VIDEO.closed:
+                        break
                     try:
                         VIDEO.start()
                     except ApiError as error:

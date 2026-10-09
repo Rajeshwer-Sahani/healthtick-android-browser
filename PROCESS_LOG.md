@@ -4310,3 +4310,28 @@ The exact user prompt for this implementation is preserved verbatim in Entry 024
 ### User Decision / Next Step
 
 Unlock the SSH key locally to continue the requested deployment and live-browser acceptance checks; otherwise deploy using the documented service migration procedure from the Mac terminal.
+
+## Entry 028 — Reviewed Implementation Commit and SSH Recheck
+
+### Time
+
+2026-10-09 14:40 IST
+
+### User Prompt Reference
+
+The exact user prompt for this implementation is preserved verbatim in Entry 024.
+
+### What AI Did
+
+- Staged and reviewed the six intended source/documentation/log files; `git diff --cached --check` passed.
+- Committed the screenshot-polling implementation as `4d31f3cff62016a87bde6ec31881e4a02debe2f4` (`feat: capture Android screens with ADB polling`) with the required Copilot co-author trailer. No push was performed.
+- After the user selected that the key was loaded, rechecked `ssh-add -l`; the execution environment still reported that the SSH agent has no identities. The read-only SSH/systemd inspection therefore did not run successfully. No remote changes were made.
+
+### Errors / Failures / Limitations
+
+- Deployment remains blocked by SSH authentication availability in the tool environment. The response indicating the key was loaded did not result in an identity visible to `ssh-add -l`.
+- No live Android capture, deployed `/stream.mjpg` JPEG sequence, browser rendering, or input acceptance test has been performed on commit `4d31f3c`.
+
+### User Decision / Next Step
+
+Run the VM deployment commands from the Mac terminal where `~/.ssh/healthtick_vm` is usable, or make the unlocked SSH identity available to this agent environment and continue with live deployment/browser verification. Do not describe the cloud deployment as updated until multiple complete JPEG frames and browser interactions are actually observed.

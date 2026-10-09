@@ -176,11 +176,8 @@ does not require hardcoded browser dimensions.
 - ADB text input does not comprehensively support arbitrary Unicode or IME
   behaviors; wheel scroll is an approximate swipe.
 - Two-way clipboard and session recording are not implemented.
-- A continuous 3–5 minute demo video is required by the assignment but is not
-  in this repository. Add it before final submission.
-- The assignment asks candidates to report actual time spent. This repository
-  does not establish that figure; the author must provide it.
-
+- **Demo video:** The required continuous 3–5 minute demonstration is hosted externally on Google Drive: [Watch the deployed demo](https://drive.google.com/file/d/1ir7NYKaiUZUGgNPWL3qVlGMMWQqTXEwC/view?usp=sharing). The video is not stored in this repository.
+- **Time spent:** Approximately 45+ hours, as reported by the author.
 ## What went wrong
 
 - The Google Android Emulator WebRTC/gRPC route reached the gateway, but
@@ -223,8 +220,7 @@ does not require hardcoded browser dimensions.
 - Architecture and alternatives: [docs/architecture.md](./docs/architecture.md).
 - Measured validation: [docs/latency-and-validation.md](./docs/latency-and-validation.md).
 - AI process record: [PROCESS_LOG.md](./PROCESS_LOG.md).
-- Demo video: **still to be added**; record one continuous 3–5 minute demo of
-  the deployed system.
+- Demo video: [Watch the continuous 3–5 minute deployed demo](https://drive.google.com/file/d/1ir7NYKaiUZUGgNPWL3qVlGMMWQqTXEwC/view?usp=sharing).
 
 ## Human-authored submission notes — complete before submission
 

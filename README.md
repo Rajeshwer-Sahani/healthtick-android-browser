@@ -222,13 +222,18 @@ does not require hardcoded browser dimensions.
 - AI process record: [PROCESS_LOG.md](./PROCESS_LOG.md).
 - Demo video: [Watch the continuous 3–5 minute deployed demo](https://drive.google.com/file/d/1ir7NYKaiUZUGgNPWL3qVlGMMWQqTXEwC/view?usp=sharing).
 
-## Human-authored submission notes — complete before submission
+## Human-authored submission notes
 
-The assignment requires the candidate's own short reflection on decisions
-they made that the AI did not suggest, and one place where AI was wrong or
-unhelpful. Do not submit this as the candidate's personal account without
-review and rewriting it in your own words:
+### My decisions beyond AI suggestions
 
-- **My decisions beyond AI suggestions:** `[Author: describe your decisions in your own words.]`
-- **One AI mistake or unhelpful suggestion:** `[Author: review the candidate example in docs/architecture.md, then explain what you noticed and how you corrected course in your own words.]`
-- **Time spent on the assignment:** `[Author: enter your actual time spent.]`
+First, I focused on understanding the assignment requirements because I had not worked on this type of project before. I broke the problem into smaller parts: running an Android emulator on a remote Linux VM, streaming its screen to a browser, and sending user interactions from the browser back to Android.
+
+I initially explored the Android Emulator WebRTC/gRPC approach with a Python gateway and React frontend. When the RTC stream could not be established, and the scrcpy/FFmpeg approach did not reliably publish live frames on the deployed VM, I moved to screenshot polling through ADB. I chose the approach that I could verify on the actual public deployment, even though it has trade-offs in bandwidth, processing overhead, and display smoothness.
+
+### One AI mistake or unhelpful suggestion
+
+During the streaming experiments, investigating FFmpeg probing settings did not resolve the live-streaming problem. I learned that successfully decoding a finite recording or extracting a single frame does not prove that a continuous live stream is working. I checked the deployed behaviour and whether live frames were being published, then switched to screenshot polling and verified that it delivered real emulator frames.
+
+### Time spent on the assignment
+
+Approximately 45+ hours.

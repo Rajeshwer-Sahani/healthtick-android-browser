@@ -143,10 +143,6 @@ cleanup. Client-side restrictions alone are insufficient.
 
 ## Submission deliverables
 
-The author still needs to complete these assignment deliverables:
-
-- Record and include the required continuous 3–5 minute demo of the deployed
-  application.
-- Add the actual time spent on the assignment.
-- Write the human-authored reflection describing personal decisions and one
-  instance where AI was wrong or unhelpful.
+- **Demo video:** [Watch the continuous 3–5 minute deployed demo](https://drive.google.com/file/d/1ir7NYKaiUZUGgNPWL3qVlGMMWQqTXEwC/view?usp=sharing).
+- **Time spent:** Approximately 45+ hours, as reported by the author.
+- **Human-authored reflection:** Included in the README and reviewed by the author for accuracy.

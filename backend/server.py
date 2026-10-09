@@ -96,6 +96,15 @@ def display_size(serial: str) -> tuple[int, int]:
     return tuple(map(int, sizes[-1]))
 
 
+def ffmpeg_command(fifo: Path) -> list[str]:
+    return [
+        FFMPEG, "-hide_banner", "-loglevel", "warning",
+        "-f", "matroska", "-probesize", "10M", "-analyzeduration", "10M",
+        "-i", str(fifo), "-an", "-fps_mode", "passthrough",
+        "-c:v", "mjpeg", "-q:v", "7", "-f", "image2pipe", "pipe:1",
+    ]
+
+
 class VideoPipeline:
     """One device-side scrcpy capture shared by all connected browser clients."""
 
@@ -270,12 +279,7 @@ class VideoPipeline:
             self.scrcpy_log = tempfile.TemporaryFile()
 
             self.ffmpeg = subprocess.Popen(
-                [
-                    FFMPEG, "-hide_banner", "-loglevel", "warning",
-                    "-i", str(fifo), "-an", "-fps_mode", "passthrough",
-                    "-c:v", "mjpeg", "-q:v", "7", "-f", "image2pipe",
-                    "-vcodec", "mjpeg", "pipe:1",
-                ],
+                ffmpeg_command(fifo),
                 stdout=subprocess.PIPE,
                 stderr=self.ffmpeg_log,
                 bufsize=0,

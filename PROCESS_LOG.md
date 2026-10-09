@@ -3827,6 +3827,212 @@ Copy these changes to the existing VM, build the frontend, restart `healthtick-b
 
 Wait for the user to provide the trusted SSH/gcloud access path, then continue by inspecting the deployed service environment and scrcpy executable location before changing the VM.
 
+## Entry 022 — FFmpeg Matroska Probe Configuration
+
+### Time
+
+2026-10-09 (local time unavailable from the execution environment)
+
+### Exact User Prompt
+
+````
+We need to finish the HealthTick Software Developer Intern assignment TODAY.
+
+IMPORTANT:
+Do NOT redesign the application.
+Do NOT replace the real Android emulator with mocks/fake UI.
+Do NOT remove existing tap, swipe, scroll, keyboard input, coordinate mapping, latency metrics, or recovery functionality.
+Preserve the current working architecture.
+
+PROJECT:
+healthtick-android-browser
+
+CURRENT DEPLOYMENT:
+Google Cloud VM
+Debian 13 x86_64
+Android Emulator API 35
+ADB device: emulator-5554
+Android display override: 720x1600
+scrcpy 5.0
+FFmpeg 7.1.5
+Python backend
+Public URL:
+http://34.14.173.43:8000
+
+CURRENT SYSTEMD ENVIRONMENT:
+ADB_PATH=/home/rajeshwersahani720/android-sdk/platform-tools/adb
+ADB_SERIAL=emulator-5554
+SCRCPY_PATH=/home/rajeshwersahani720/scrcpy-linux-x86_64-v5.0/scrcpy
+FFMPEG_PATH=/usr/bin/ffmpeg
+
+CURRENT PROBLEM:
+The deployed backend starts correctly, Android emulator is connected, and scrcpy launches successfully, but FFmpeg never produces a JPEG frame.
+
+Exact production logs:
+
+scrcpy stderr:
+scrcpy-server: 1 file pushed, 0 skipped. 271.5 MB/s (733974 bytes in 0.003s)
+
+FFmpeg stderr:
+[matroska,webm @ ...] Could not find codec parameters for stream 0
+(Video: h264, none, 324x720): unspecified pixel format
+Consider increasing the 'analyzeduration' (0) and 'probesize' options
+
+[vost#0:0 @ ...] Multiple -codec/-c/-acodec/-vcodec/-scodec/-dcodec options specified for stream 0, only the last option '-codec:v mjpeg' will be used.
+
+Then:
+
+Video pipeline startup did not produce a live frame:
+no live JPEG frame within 15 seconds
+
+The stream endpoint returns 503 or times out with zero bytes.
+
+Important observations:
+- adb devices shows:
+  emulator-5554 device
+- sys.boot_completed = 1
+- wm size:
+  Physical size: 1080x2400
+  Override size: 720x1600
+- scrcpy --version works:
+  scrcpy 5.0
+- systemd service correctly has SCRCPY_PATH pointing to the actual binary.
+- Therefore this is NOT a PATH problem.
+- The frontend is not the root cause.
+- The backend currently uses scrcpy recording into a FIFO:
+  scrcpy --no-window --no-playback --no-control --no-audio
+         --max-size=720 --max-fps=15 --video-bit-rate=2M
+         --record=<fifo> --record-format=mkv
+
+  and FFmpeg reads the FIFO and converts the video to MJPEG.
+
+TASK:
+
+1. Inspect backend/server.py and understand the existing VideoPipeline completely before modifying it.
+
+2. Diagnose why FFmpeg cannot initialize the H.264 stream coming from scrcpy's MKV recording through the FIFO.
+
+3. Implement the SMALLEST reliable production fix.
+
+Consider these approaches in this order, and choose the one that actually works:
+
+A. Explicitly tell FFmpeg that the FIFO input is Matroska/WebM and increase probing:
+   - use appropriate input format/options
+   - e.g. analyzeduration/probesize where appropriate
+   - make sure input options are placed BEFORE -i
+   - do not blindly add options without testing
+
+B. If the MKV-over-FIFO approach remains unreliable, change the capture pipeline to a more reliable streaming representation that scrcpy 5.0 supports, while still producing MJPEG for the browser.
+
+C. Keep the browser output as multipart/x-mixed-replace MJPEG unless there is a strong reason to change it.
+
+4. IMPORTANT:
+Do not simply suppress the FFmpeg warning.
+The final implementation MUST actually produce real JPEG frames.
+
+5. Add robust FFmpeg/scrcpy stderr capture so future startup failures show the actual reason.
+
+6. Keep the existing:
+   - stale pipeline detection
+   - reader lifecycle detection
+   - startup wait for a real JPEG
+   - automatic capture restart
+   - unique frontend stream session
+   - reconnect behavior
+   - 720 resolution
+   - 15 FPS
+   - 2 Mbps bitrate
+   - tap/swipe/scroll/keyboard input
+   - coordinate mapping
+   - metrics/latency measurement
+
+7. Validate locally as much as possible.
+
+Run:
+   python3 -m py_compile backend/server.py
+   cd frontend && npm ci && npm run build
+   git diff --check
+
+If an Android emulator is unavailable locally, do NOT claim live validation succeeded.
+Clearly distinguish static validation from live emulator validation.
+
+8. IMPORTANT AI PROCESS LOG:
+The project has AGENTS.md and PROCESS_LOG.md.
+Read AGENTS.md first.
+Append the exact user prompt and your actions/errors/results to PROCESS_LOG.md.
+Do not rewrite/delete existing log entries.
+
+9. After implementing the fix, inspect the final FFmpeg command carefully.
+It must not contain conflicting codec options.
+Avoid this warning:
+"Multiple -codec/-c/-acodec/-vcodec/-scodec/-dcodec options specified"
+
+10. Add or update a focused test if practical for the FFmpeg command construction or pipeline behavior.
+
+11. Do not modify unrelated files.
+
+12. At the end, report:
+   - exact root cause
+   - exact files changed
+   - exact FFmpeg/scrcpy command now used
+   - why the fix solves the H.264/pixel-format problem
+   - local validation results
+   - exact deployment commands for the existing Google Cloud VM
+
+13. If the fix is confident, commit it with:
+
+   fix: make scrcpy ffmpeg capture reliable
+
+Do NOT push until the working tree and diff are reviewed.
+
+FINAL SUCCESS CONDITION:
+A deployed request to:
+
+http://127.0.0.1:8000/stream.mjpg
+
+must produce actual multipart MJPEG data containing multiple complete JPEG frames.
+
+The public browser:
+
+http://34.14.173.43:8000
+
+must show the real Android emulator without needing to press Home or wait minutes.
+
+Do not declare success merely because /api/health returns 200.
+The video pipeline is only successful when actual JPEG frames are being published.
+````
+
+### What AI Did
+
+- Inspected the complete `VideoPipeline` command construction and the surrounding startup/readiness/recovery behavior before editing.
+- Confirmed the existing FFmpeg invocation relied on input format autodetection and had both `-c:v mjpeg` and the duplicate alias `-vcodec mjpeg`.
+- Confirmed local FFmpeg 9.0.2 recognizes the Matroska/WebM demuxer and local scrcpy 5.0 documents `mkv` as a supported recording format. The installed tools differ from production's reported FFmpeg 7.1.5, so this does not independently validate production decoding.
+- Added an FFmpeg command builder that explicitly selects Matroska and sets `-probesize 10M` and `-analyzeduration 10M` before `-i`, and emits only one MJPEG codec selection.
+- Added a focused unit test asserting the input option ordering and absence of duplicate output codec options.
+- Ran the command with `/dev/null` as a parser/syntax check: FFmpeg accepted the flags and did not emit the duplicate-codec warning; it correctly failed to parse `/dev/null` as media. This was not a video-frame test.
+- Ran `python3 -m py_compile backend/server.py`; passed.
+- Ran `python3 -m unittest discover -s backend -v`; the focused test passed.
+- Ran `cd frontend && npm ci && npm run build`; dependency install completed with 0 reported vulnerabilities and the Vite build passed.
+- Ran `git diff --check`; passed.
+- Verified scrcpy source arguments still use `--max-size=720`, `--max-fps=15`, and `--video-bit-rate=2M`.
+- Checked local emulator availability with `adb devices -l`; the check could not run because `adb` is not installed/on PATH in this checkout environment.
+
+### Errors / Failures / Limitations
+
+- No local Android emulator or adb executable was available, so real capture, multiple complete JPEG frames, actual Android interaction, and production FFmpeg 7.1.5 behavior could not be verified.
+- The available FFmpeg smoke check deliberately used `/dev/null` and exited with an invalid Matroska header; it only checked option recognition and the absence of the duplicate codec warning.
+- The diagnosed source-level cause is insufficient/ambiguous Matroska/H.264 probing for the non-seekable FIFO as shown in production stderr; the duplicate codec alias produced a separate warning and has been removed. The exact production frame failure is not confirmed resolved until the deployed command publishes real JPEGs.
+
+### Files Changed
+
+- `backend/server.py`
+- `backend/test_video_pipeline.py`
+- `PROCESS_LOG.md` (append-only)
+
+### User Decision / Next Step
+
+Deploy the reviewed source to the existing VM, restart the backend, and verify `/stream.mjpg` yields multiple complete real JPEG frames using production FFmpeg 7.1.5 before treating the incident as resolved. Do not push this commit unless separately requested.
+
 ## Entry 021 — HEAD Error Response Semantics Follow-Up
 
 ### Time

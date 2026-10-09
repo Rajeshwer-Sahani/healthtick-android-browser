@@ -5,6 +5,12 @@ const STREAM_URL = import.meta.env.DEV
   ? "http://127.0.0.1:8000/stream.mjpg"
   : "/stream.mjpg";
 
+function streamUrl(session, reconnect) {
+  const params = new URLSearchParams({ session });
+  if (reconnect) params.set("reconnect", String(reconnect));
+  return `${STREAM_URL}?${params}`;
+}
+
 export default function App() {
   const imageRef = useRef(null);
   const pointerRef = useRef(null);
@@ -13,6 +19,12 @@ export default function App() {
   const inputQueueRef = useRef(Promise.resolve());
   const wheelHandlerRef = useRef(null);
   const keyboardReadyAtRef = useRef(0);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const [streamSession] = useState(
+    () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const [streamSrc, setStreamSrc] = useState(() => streamUrl(streamSession));
   const [health, setHealth] = useState(null);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Connecting to emulator…");
@@ -45,6 +57,12 @@ export default function App() {
       active = false;
       window.clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => () => {
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+    }
   }, []);
 
   const screenPoint = useCallback((clientX, clientY) => {
@@ -206,11 +224,24 @@ export default function App() {
   }
 
   function onStreamError() {
-    window.setTimeout(() => {
-      if (imageRef.current) {
-        imageRef.current.src = `${STREAM_URL}?reconnect=${Date.now()}`;
-      }
-    }, 1000);
+    if (reconnectTimerRef.current !== null) return;
+    reconnectAttemptsRef.current += 1;
+    const delay = Math.min(
+      1000 * (2 ** Math.min(reconnectAttemptsRef.current - 1, 4)),
+      15000,
+    );
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null;
+      setStreamSrc(streamUrl(streamSession, Date.now()));
+    }, delay);
+  }
+
+  function onStreamLoad() {
+    reconnectAttemptsRef.current = 0;
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
   }
 
   return (
@@ -241,8 +272,9 @@ export default function App() {
             >
               <img
                 ref={imageRef}
-                src={STREAM_URL}
+                src={streamSrc}
                 alt="Live Android Emulator screen"
+                onLoad={onStreamLoad}
                 onError={onStreamError}
                 draggable="false"
               />
